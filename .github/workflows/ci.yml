@@ -1,0 +1,19 @@
+# Template CI pipeline
+# Status: TEMPLATE ONLY. Do not use as a runnable pipeline until the bootstrap package implements toolchain setup.
+# Action versions/commit SHAs must be pinned during implementation.
+
+name: CI (Template)
+on: [push, pull_request]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup tools
+        run: echo "Toolchain setup missing. Bootstrap package must implement this." && exit 1
+      - name: Run Makefile targets
+        run: |
+          # make lint
+          # make test
+          echo "Makefile targets not yet implemented."
