@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DIA Dashboard</title>
+  <style>body { font-family: sans-serif; padding: 20px; } .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; }</style>
+</head>
+<body>
+  <h1>Durable Incident Response Agent</h1>
+  <div class="card">
+    <h3>Simulate Incident</h3>
+    <button onclick="triggerIncident()">Trigger Checkout Incident</button>
+  </div>
+  <div class="card" id="approval-box" style="display: none;">
+    <h3>Pending Approval</h3>
+    <p>Agent proposes restarting Checkout service.</p>
+    <button onclick="approve(true)">Approve</button>
+    <button onclick="approve(false)">Reject</button>
+  </div>
+  <script>
+    let currentWorkflowId = '';
+    async function triggerIncident() {
+      const res = await fetch('http://localhost:4000/api/incidents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ incidentId: Date.now().toString(), serviceUrl: 'http://localhost:5001' })
+      });
+      const data = await res.json();
+      currentWorkflowId = data.workflowId;
+      document.getElementById('approval-box').style.display = 'block';
+    }
+    async function approve(isApproved) {
+      await fetch(http://localhost:4000/api/incidents/\/approve, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved: isApproved })
+      });
+      document.getElementById('approval-box').style.display = 'none';
+      alert('Signal sent to Temporal workflow!');
+    }
+  </script>
+</body>
+</html>
