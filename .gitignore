@@ -1,3 +1,10 @@
 node_modules/
 dist/
 .env
+
+# Planning & Walkthrough Docs
+EXECUTION_MASTER.md
+PROJECT_STATUS.yaml
+IMPLEMENTATION_PLAN_PHASE2_E2E.md
+docs/WALKTHROUGH.md
+WALKTHROUGH.md
