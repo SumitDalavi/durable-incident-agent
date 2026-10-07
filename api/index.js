@@ -22,10 +22,19 @@ const authMiddleware = (req, res, next) => {
 
 let client;
 async function setupTemporal() {
-  const connection = await Connection.connect({ address: 'localhost:7233' });
-  client = new Client({ connection });
+  while (true) {
+    try {
+      const connection = await Connection.connect({ address: 'localhost:7233' });
+      client = new Client({ connection });
+      console.log('Connected to Temporal');
+      break;
+    } catch (err) {
+      console.error('Failed to connect to Temporal, retrying in 2s...');
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
 }
-setupTemporal().catch(console.error);
+setupTemporal();
 
 app.post('/api/incidents', async (req, res) => {
   const { incidentId, serviceUrl } = req.body;

@@ -24,7 +24,7 @@ async function runRealIntegration() {
   
   console.log("Starting API and Agent...");
   const api = spawn('node', ['index.js'], { cwd: 'api', stdio: 'inherit' });
-  const agent = spawn('node', ['dist/index.js'], { cwd: 'agent', stdio: 'inherit' });
+  const agent = spawn('node', ['dist/worker.js'], { cwd: 'agent', stdio: 'inherit' });
 
   const cleanup = () => {
     console.log("Cleaning up processes...");
