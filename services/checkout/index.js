@@ -89,8 +89,8 @@ app.post('/api/checkout', async (req, res) => {
   }
 
   try {
-    const payRes = await axios.post('http://localhost:5002/api/action', {}, { timeout: 2000 });
-    const invRes = await axios.post('http://localhost:5003/api/action', {}, { timeout: 2000 });
+    const payRes = await axios.post('http://127.0.0.1:5002/api/action', {}, { timeout: 2000 });
+    const invRes = await axios.post('http://127.0.0.1:5003/api/action', {}, { timeout: 2000 });
     
     if (state.cascade) {
       throw new Error('Cascade fault simulated');

@@ -18,13 +18,13 @@ async function runRealIntegration() {
   await new Promise(r => setTimeout(r, 10000));
 
   console.log("Starting Microservices...");
-  const checkout = spawn('npm', ['run', 'start', '--workspace=services/checkout'], { shell: true });
-  const payments = spawn('npm', ['run', 'start', '--workspace=services/payments'], { shell: true });
-  const inventory = spawn('npm', ['run', 'start', '--workspace=services/inventory'], { shell: true });
+  const checkout = spawn('node', ['index.js'], { cwd: 'services/checkout', stdio: 'inherit' });
+  const payments = spawn('node', ['index.js'], { cwd: 'services/payments', stdio: 'inherit' });
+  const inventory = spawn('node', ['index.js'], { cwd: 'services/inventory', stdio: 'inherit' });
   
   console.log("Starting API and Agent...");
-  const api = spawn('npm', ['run', 'start', '--workspace=api'], { shell: true });
-  const agent = spawn('npm', ['run', 'start', '--workspace=agent'], { shell: true });
+  const api = spawn('node', ['index.js'], { cwd: 'api', stdio: 'inherit' });
+  const agent = spawn('node', ['dist/index.js'], { cwd: 'agent', stdio: 'inherit' });
 
   const cleanup = () => {
     console.log("Cleaning up processes...");
