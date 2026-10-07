@@ -117,7 +117,7 @@ app.post('/fault/:type', (req, res) => {
   res.status(400).json({ error: 'Unknown fault' });
 });
 
-app.listen(5003, () => {
+app.listen(5003, '127.0.0.1', () => {
   logger.info('inventory service running on port 5003');
 });
 

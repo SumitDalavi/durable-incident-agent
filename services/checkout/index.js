@@ -125,7 +125,7 @@ app.post('/fault/:type', (req, res) => {
   res.status(400).json({ error: 'Unknown fault' });
 });
 
-app.listen(5001, () => {
+app.listen(5001, '127.0.0.1', () => {
   logger.info('Checkout service running on port 5001');
 });
 

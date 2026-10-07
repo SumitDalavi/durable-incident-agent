@@ -43,7 +43,7 @@ async function runRealIntegration() {
     // Inject fault into checkout
     console.log("Injecting fault into Checkout service...");
     await new Promise((resolve, reject) => {
-       const req = http.request({ hostname: '127.0.0.1', port: 3001, path: '/fault/spike-errors', method: 'POST' }, (res) => {
+       const req = http.request({ hostname: '127.0.0.1', port: 5001, path: '/fault/spike-errors', method: 'POST' }, (res) => {
          if (res.statusCode === 200) resolve();
          else reject(new Error("Failed to inject fault"));
        });
@@ -59,7 +59,7 @@ async function runRealIntegration() {
          res.on('end', () => resolve(JSON.parse(data)));
        });
        req.on('error', reject);
-       req.write(JSON.stringify({ incidentId: 'INC-REAL-1', serviceUrl: 'http://127.0.0.1:3001' }));
+       req.write(JSON.stringify({ incidentId: 'INC-REAL-1', serviceUrl: 'http://127.0.0.1:5001' }));
        req.end();
     });
 
