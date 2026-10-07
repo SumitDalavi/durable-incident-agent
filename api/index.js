@@ -85,4 +85,4 @@ app.get('/api/incidents/:id/result', async (req, res) => {
   }
 });
 
-app.listen(4000, () => console.log('API running on port 4000'));
+app.listen(4000, '127.0.0.1', () => console.log('API running on port 4000'));
