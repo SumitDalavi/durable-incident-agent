@@ -41,7 +41,7 @@ async function runRealIntegration() {
     for (let i = 0; i < 30; i++) {
       try {
         await new Promise((resolve, reject) => {
-          const req = http.request({ hostname: '127.0.0.1', port: 4000, path: '/api/incidents', method: 'GET' }, (res) => {
+          const req = http.request({ hostname: '127.0.0.1', port: 4000, path: '/health', method: 'GET' }, (res) => {
             if (res.statusCode === 200) resolve();
             else reject(new Error("Not 200"));
           });

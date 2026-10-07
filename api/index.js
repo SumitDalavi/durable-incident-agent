@@ -106,6 +106,11 @@ app.get('/api/incidents/:id/result', async (req, res) => {
   }
 });
 
-setupTemporal().then(() => {
-  app.listen(4000, '127.0.0.1', () => console.log('API running on port 4000'));
+setupTemporal();
+
+app.get('/health', (req, res) => {
+  if (client) res.sendStatus(200);
+  else res.sendStatus(503);
 });
+
+app.listen(4000, '127.0.0.1', () => console.log('API running on port 4000'));
