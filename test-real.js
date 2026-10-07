@@ -38,7 +38,7 @@ async function runRealIntegration() {
 
   try {
     console.log("Waiting for services and API to spin up...");
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 60; i++) {
       try {
         await new Promise((resolve, reject) => {
           const req = http.request({ hostname: '127.0.0.1', port: 4000, path: '/health', method: 'GET' }, (res) => {
@@ -51,7 +51,7 @@ async function runRealIntegration() {
         console.log("API is ready!");
         break;
       } catch (e) {
-        if (i === 29) throw new Error("API failed to start in time");
+        if (i === 59) throw new Error("API failed to start in time");
         await new Promise(r => setTimeout(r, 2000));
       }
     }

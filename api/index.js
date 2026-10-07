@@ -24,7 +24,7 @@ let client;
 async function setupTemporal() {
   while (true) {
     try {
-      const connection = await Connection.connect({ address: 'localhost:7233' });
+      const connection = await Connection.connect({ address: '127.0.0.1:7233' });
       client = new Client({ connection });
       console.log('Connected to Temporal');
       break;

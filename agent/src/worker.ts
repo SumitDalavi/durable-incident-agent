@@ -6,7 +6,7 @@ async function run() {
   while (true) {
     try {
       const { NativeConnection } = require('@temporalio/worker');
-      connection = await NativeConnection.connect({ address: 'localhost:7233' });
+      connection = await NativeConnection.connect({ address: '127.0.0.1:7233' });
       break;
     } catch (err) {
       console.log('Worker failing to connect, retrying in 2s...');
