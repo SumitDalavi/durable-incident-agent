@@ -120,8 +120,12 @@ async function runRealIntegration() {
 
     console.log("✅ Real Integration Test Passed!");
     cleanup();
-  } catch(err) {
+  } catch (err) {
     console.error("❌ Real Integration Test Failed:", err);
+    try {
+      console.log("----- TEMPORAL LOGS -----");
+      execSync('docker compose logs temporal', { stdio: 'inherit' });
+    } catch (e) {}
     cleanup();
     process.exit(1);
   }
