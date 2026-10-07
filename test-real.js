@@ -11,7 +11,7 @@ async function runRealIntegration() {
   }
   
   console.log("Bringing up docker containers...");
-  execSync('docker compose up -d temporal prometheus', { stdio: 'inherit' });
+  execSync('docker compose up -d postgresql temporal prometheus', { stdio: 'inherit' });
   
   // Wait for temporal to be ready
   console.log("Waiting for Temporal to be ready (10s)...");

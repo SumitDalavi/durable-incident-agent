@@ -1,16 +1,27 @@
 version: '3.8'
 
 services:
+  postgresql:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=temporal
+      - POSTGRES_PASSWORD=temporal
+    ports:
+      - "127.0.0.1:5432:5432"
+
   temporal:
     image: temporalio/auto-setup:1.22.4
+    depends_on:
+      - postgresql
     ports:
       - "127.0.0.1:7233:7233"
       - "127.0.0.1:8233:8233"
     environment:
-      - DB=sqlite
-      - DB_FILENAME=/tmp/temporal.db
-    volumes:
-      - temporal_data:/tmp
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgresql
 
   prometheus:
     image: prom/prometheus:latest
