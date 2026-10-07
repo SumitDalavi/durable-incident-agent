@@ -55,6 +55,24 @@ async function runTests() {
        throw new Error("Authorized request failed auth middleware!");
     }
 
+    console.log("Running Activity finite-value validation...");
+    await new Promise((resolve, reject) => {
+       const actProc = spawn('npx', ['tsx', 'agent/src/test-activities.ts'], { stdio: 'inherit', shell: true });
+       actProc.on('close', code => {
+         if (code === 0) resolve(true);
+         else reject(new Error("Activity tests failed"));
+       });
+    });
+
+    console.log("Running Temporal E2E tests...");
+    await new Promise((resolve, reject) => {
+       const e2eProc = spawn('npx', ['tsx', 'agent/src/test-workflow.ts'], { stdio: 'inherit', shell: true });
+       e2eProc.on('close', code => {
+         if (code === 0) resolve(true);
+         else reject(new Error("Temporal E2E tests failed"));
+       });
+    });
+
     console.log("✅ Durable Incident Agent passed behavioral tests.");
     apiProcess.kill();
   } catch (err) {

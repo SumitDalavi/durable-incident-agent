@@ -41,6 +41,18 @@ app.post('/api/incidents', async (req, res) => {
   }
 });
 
+app.get('/api/incidents', async (req, res) => {
+  try {
+     // A simple mock since we don't have a database or active list in this demo wrapper
+     res.json([
+       { id: 'INC-1001', service: 'checkout', status: 'active' },
+       { id: 'INC-1002', service: 'payments', status: 'investigating' }
+     ]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/incidents/:id/approve', authMiddleware, async (req, res) => {
   try {
     const { approved, proposalHash } = req.body;

@@ -72,48 +72,86 @@ export async function generateProposal(incidentId: string, hypothesis: string, t
 }
 
 export async function verifyRemediation(serviceUrl: string, originalQuery: string): Promise<'success' | 'failed' | 'inconclusive'> {
-  // Wait 10 seconds to let the metrics settle
-  await new Promise(resolve => setTimeout(resolve, 10000));
-  
-  try {
-    const targetService = originalQuery.includes('payments') ? 'payments' : originalQuery.includes('inventory') ? 'inventory' : 'checkout';
-    const trafficQuery = `rate(${targetService}_requests_total[1m])`;
+  const targetService = originalQuery.includes('payments') ? 'payments' : originalQuery.includes('inventory') ? 'inventory' : 'checkout';
+  const trafficQuery = `rate(${targetService}_requests_total[1m])`;
+  const latencyQuery = `histogram_quantile(0.95, rate(${targetService}_request_duration_seconds_bucket[1m]))`;
+
+  let successfulObservations = 0;
+  const maxObservations = 3;
+
+  for (let i = 0; i < maxObservations; i++) {
+    // Wait 5 seconds between observations to prove sustained recovery
+    await new Promise(resolve => setTimeout(resolve, 5000));
     
-    const [errRes, trafficRes] = await Promise.all([
-      axios.get(PROMETHEUS_URL, { params: { query: originalQuery }, timeout: 5000 }),
-      axios.get(PROMETHEUS_URL, { params: { query: trafficQuery }, timeout: 5000 }).catch(() => null)
-    ]);
-    
-    const errResult = errRes.data?.data?.result;
-    const trafficResult = trafficRes?.data?.data?.result;
-    
-    if (!trafficResult || trafficResult.length === 0) {
-      console.warn("verifyRemediation: No traffic metrics found, marking as inconclusive.");
+    try {
+      const [errRes, trafficRes, latRes] = await Promise.all([
+        axios.get(PROMETHEUS_URL, { params: { query: originalQuery }, timeout: 5000 }),
+        axios.get(PROMETHEUS_URL, { params: { query: trafficQuery }, timeout: 5000 }).catch(() => null),
+        axios.get(PROMETHEUS_URL, { params: { query: latencyQuery }, timeout: 5000 }).catch(() => null)
+      ]);
+      
+      const errResult = errRes.data?.data?.result;
+      const trafficResult = trafficRes?.data?.data?.result;
+      const latResult = latRes?.data?.data?.result;
+      
+      if (!trafficResult || trafficResult.length === 0) {
+        console.warn("verifyRemediation: No traffic metrics found, marking as inconclusive.");
+        return 'inconclusive';
+      }
+      const trafficRate = parseFloat(trafficResult[0].value[1]);
+      if (isNaN(trafficRate) || !isFinite(trafficRate) || trafficRate < 0) {
+         console.warn(`verifyRemediation: Invalid traffic metric ${trafficRate}`);
+         return 'inconclusive';
+      }
+      if (trafficRate < 1.0) {
+        console.warn(`verifyRemediation: Traffic rate too low (${trafficRate}), cannot prove recovery.`);
+        return 'inconclusive';
+      }
+      
+      if (!errResult || errResult.length === 0) {
+        console.warn("verifyRemediation: Error metric series missing. Cannot validate telemetry coverage.");
+        return 'inconclusive';
+      }
+      const errRate = parseFloat(errResult[0].value[1]);
+      if (isNaN(errRate) || !isFinite(errRate) || errRate < 0) {
+         console.warn(`verifyRemediation: Invalid error metric ${errRate}`);
+         return 'inconclusive';
+      }
+      
+      const errorRatio = errRate / trafficRate;
+      if (isNaN(errorRatio) || !isFinite(errorRatio) || errorRatio < 0) {
+         console.warn(`verifyRemediation: Invalid error ratio ${errorRatio}`);
+         return 'inconclusive';
+      }
+      
+      if (errorRatio > 0.05) {
+        console.warn(`verifyRemediation: Error ratio still high (${errorRatio.toFixed(2)}), failed.`);
+        return 'failed';
+      }
+
+      if (latResult && latResult.length > 0) {
+        const latency = parseFloat(latResult[0].value[1]);
+        if (isNaN(latency) || !isFinite(latency) || latency < 0) {
+           console.warn(`verifyRemediation: Invalid latency metric ${latency}`);
+           return 'inconclusive';
+        }
+        if (latency > 2.0) { // arbitrary 2 second p95 threshold for latency fault
+          console.warn(`verifyRemediation: Latency still high (${latency.toFixed(2)}s), failed.`);
+          return 'failed';
+        }
+      }
+      
+      successfulObservations++;
+    } catch (err: any) {
+      console.error("verifyRemediation error:", err.message);
       return 'inconclusive';
     }
-    const trafficRate = parseFloat(trafficResult[0].value[1]);
-    if (trafficRate < 1.0) {
-      console.warn(`verifyRemediation: Traffic rate too low (${trafficRate}), cannot prove recovery.`);
-      return 'inconclusive';
-    }
-    
-    if (!errResult || errResult.length === 0) {
-      console.warn("verifyRemediation: Error metric series missing. Cannot validate telemetry coverage.");
-      return 'inconclusive';
-    }
-    const errRate = parseFloat(errResult[0].value[1]);
-    const errorRatio = errRate / trafficRate;
-    
-    if (errorRatio > 0.05) {
-      console.warn(`verifyRemediation: Error ratio still high (${errorRatio.toFixed(2)}), failed.`);
-      return 'failed';
-    }
-    
-    return 'success';
-  } catch (err: any) {
-    console.error("verifyRemediation error:", err.message);
-    return 'inconclusive';
   }
+
+  if (successfulObservations === maxObservations) {
+     return 'success';
+  }
+  return 'inconclusive';
 }
 
 export async function remediateService(serviceUrl: string): Promise<string> {
