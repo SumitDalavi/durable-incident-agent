@@ -1,8 +1,6 @@
 import { verifyRemediation } from './activities';
 import axios from 'axios';
 
-import axios from 'axios';
-
 // Manually mock axios
 const originalAxiosGet = axios.get;
 
@@ -33,6 +31,29 @@ async function testActivities() {
         throw new Error(`Negative value test failed. Expected inconclusive, got ${resultNeg}`);
     }
     console.log("✅ Negative value validation passed.");
+    
+    axios.get = async () => ({
+        data: {
+            data: { result: [{ value: [123, "Infinity"] }] }
+        }
+    }) as any;
+    const resultInf = await verifyRemediation('http://service', 'rate(checkout_errors)');
+    if (resultInf !== 'inconclusive') {
+        throw new Error(`Infinity value test failed. Expected inconclusive, got ${resultInf}`);
+    }
+    console.log("✅ Infinity value validation passed.");
+
+    axios.get = async () => ({
+        data: {
+            data: { result: [] } // Malformed / empty result
+        }
+    }) as any;
+    const resultMalformed = await verifyRemediation('http://service', 'rate(checkout_errors)');
+    if (resultMalformed !== 'inconclusive') {
+        throw new Error(`Malformed value test failed. Expected inconclusive, got ${resultMalformed}`);
+    }
+    console.log("✅ Malformed value validation passed.");
+
     axios.get = originalAxiosGet;
 }
 

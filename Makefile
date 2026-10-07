@@ -15,6 +15,7 @@ dev:
 
 test:
 	node test.js
+	node test-real.js
 
 clean:
 	docker compose down -v
