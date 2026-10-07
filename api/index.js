@@ -34,7 +34,7 @@ async function setupTemporal() {
     }
   }
 }
-setupTemporal();
+
 
 app.post('/api/incidents', async (req, res) => {
   const { incidentId, serviceUrl } = req.body;
@@ -106,4 +106,6 @@ app.get('/api/incidents/:id/result', async (req, res) => {
   }
 });
 
-app.listen(4000, '127.0.0.1', () => console.log('API running on port 4000'));
+setupTemporal().then(() => {
+  app.listen(4000, '127.0.0.1', () => console.log('API running on port 4000'));
+});

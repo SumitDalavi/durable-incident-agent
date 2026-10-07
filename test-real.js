@@ -37,8 +37,24 @@ async function runRealIntegration() {
   };
 
   try {
-    console.log("Waiting for services to spin up (10s)...");
-    await new Promise(r => setTimeout(r, 10000));
+    console.log("Waiting for services and API to spin up...");
+    for (let i = 0; i < 30; i++) {
+      try {
+        await new Promise((resolve, reject) => {
+          const req = http.request({ hostname: '127.0.0.1', port: 4000, path: '/api/incidents', method: 'GET' }, (res) => {
+            if (res.statusCode === 200) resolve();
+            else reject(new Error("Not 200"));
+          });
+          req.on('error', reject);
+          req.end();
+        });
+        console.log("API is ready!");
+        break;
+      } catch (e) {
+        if (i === 29) throw new Error("API failed to start in time");
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
 
     // Inject fault into checkout
     console.log("Injecting fault into Checkout service...");
