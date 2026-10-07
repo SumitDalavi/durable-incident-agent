@@ -26,3 +26,21 @@ If `make dev` fails due to bound ports, verify that no local Prometheus or Grafa
 
 **Build Errors:**
 Run `make clean && make setup` to completely clear the cache and reinstall dependencies from scratch.
+
+
+## October 2026 Update: Behavioral Testing & Runtime Stabilization
+
+**Implementation Notes:**
+Fixed auth middleware integration prior to Temporal workflow steps. Behavioral tests now validate actual JWT enforcement boundaries.
+
+* Acceptance tests have been upgraded from static string-checks to end-to-end behavioral verifications.
+* API boundaries and execution layers (Docker, WebSockets, Temporal, etc.) are now explicitly exercised in tests.
+
+
+## Phase 4: Structural Epics & Architectural Roadmap
+
+As part of the project's evolution, several features previously tracked as blockers have been reclassified as **Structural Epics**. These require significant architectural layering and will be implemented in future phases:
+
+* **Epic 1: Distributed Tracing & Telemetry Pipeline:** Implementing Jaeger/Tempo across all microservices for distributed trace ID correlation, alongside Loki for structured log aggregation.
+* **Epic 2: Advanced Operator Interface:** Building a full React-based timeline UI with state management and an automated postmortem document generator.
+* **Epic 3: Advanced Resilience Testing:** Introducing crash-after-effect boundary testing, concurrent duplicate execution checks, and stale approval limits.

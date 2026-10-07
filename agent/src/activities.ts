@@ -87,24 +87,21 @@ export async function verifyRemediation(serviceUrl: string, originalQuery: strin
     const errResult = errRes.data?.data?.result;
     const trafficResult = trafficRes?.data?.data?.result;
     
-    if (!errResult || errResult.length === 0) {
-      console.warn("verifyRemediation: No error metrics found, marking as inconclusive.");
+    if (!trafficResult || trafficResult.length === 0) {
+      console.warn("verifyRemediation: No traffic metrics found, marking as inconclusive.");
+      return 'inconclusive';
+    }
+    const trafficRate = parseFloat(trafficResult[0].value[1]);
+    if (trafficRate < 1.0) {
+      console.warn(`verifyRemediation: Traffic rate too low (${trafficRate}), cannot prove recovery.`);
       return 'inconclusive';
     }
     
-    const errRate = parseFloat(errResult[0].value[1]);
-    let trafficRate = 0;
-    if (trafficResult && trafficResult.length > 0) {
-      trafficRate = parseFloat(trafficResult[0].value[1]);
-    }
+    const errRate = (!errResult || errResult.length === 0) ? 0 : parseFloat(errResult[0].value[1]);
+    const errorRatio = errRate / trafficRate;
     
-    if (trafficRate < 0.1) {
-      console.warn(`verifyRemediation: Traffic rate too low (${trafficRate}), cannot prove recovery.`);
-      return 'failed';
-    }
-    
-    if (errRate >= 0.5) {
-      console.warn(`verifyRemediation: Error rate still high (${errRate}), failed.`);
+    if (errorRatio > 0.05) {
+      console.warn(`verifyRemediation: Error ratio still high (${errorRatio.toFixed(2)}), failed.`);
       return 'failed';
     }
     

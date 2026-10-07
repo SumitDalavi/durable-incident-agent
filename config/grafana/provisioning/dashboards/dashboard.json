@@ -13,7 +13,7 @@
       "id": 2,
       "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
       "targets": [
-        { "expr": "rate(http_requests_total[1m])", "legendFormat": "{{service}} {{status}}", "refId": "A" }
+        { "expr": "rate(checkout_requests_total[1m])", "legendFormat": "{{service}} {{status}}", "refId": "A" }
       ],
       "title": "Throughput by Service",
       "type": "timeseries"
@@ -25,7 +25,7 @@
       "id": 3,
       "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
       "targets": [
-        { "expr": "rate(http_errors_total[1m])", "legendFormat": "{{service}} Errors", "refId": "A" }
+        { "expr": "rate(checkout_errors_total[1m])", "legendFormat": "{{service}} Errors", "refId": "A" }
       ],
       "title": "Error Rate by Service",
       "type": "timeseries"

@@ -142,19 +142,36 @@
     async function approve(isApproved) {
       if (!currentWorkflowId) return;
       try {
-        await fetch(`http://localhost:4000/api/incidents/${currentWorkflowId}/approve`, {
+        const res = await fetch(`http://localhost:4000/api/incidents/${currentWorkflowId}/approve`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer valid-token' },
           body: JSON.stringify({ approved: isApproved, proposalHash: hashToApprove, approver: 'operator-jane' })
         });
+        if (!res.ok) {
+          alert('Approval failed. Server returned ' + res.status);
+          return;
+        }
         document.getElementById('approval-box').classList.add('hidden');
         logToTimeline(isApproved ? `Operator approved execution.` : `Operator rejected execution.`);
         
         if (isApproved) {
-          document.getElementById('btn-postmortem').style.display = 'inline-block';
+          alert('Signal sent to Temporal workflow! Monitoring for resolution...');
+          // Poll for completion to show postmortem
+          const statusPoll = setInterval(async () => {
+             const sRes = await fetch(`http://localhost:4000/api/incidents/${currentWorkflowId}/status`);
+             const sData = await sRes.json();
+             if (sData.status === 'COMPLETED') {
+                clearInterval(statusPoll);
+                document.getElementById('btn-postmortem').style.display = 'inline-block';
+                logToTimeline('Workflow completed successfully.');
+             } else if (sData.status === 'FAILED') {
+                clearInterval(statusPoll);
+                logToTimeline('Workflow failed.');
+             }
+          }, 2000);
+        } else {
+          alert('Signal sent to Temporal workflow! Check worker logs for resolution output.');
         }
-        
-        alert('Signal sent to Temporal workflow! Check worker logs for resolution output.');
       } catch (err) {
         alert('Failed to send approval signal.');
       }

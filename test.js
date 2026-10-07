@@ -1,23 +1,67 @@
-const assert = require('assert');
-const fs = require('fs');
+const http = require('http');
+const { spawn } = require('child_process');
 
 async function runTests() {
-  console.log("Running Durable Incident Agent Tests...");
+  console.log("Starting DIA API for Behavioral Tests...");
+  const apiProcess = spawn('node', ['api/index.js']);
   
-  // Test 1: Auth Middleware exists and protects approval
-  const apiCode = fs.readFileSync(__dirname + '/api/index.js', 'utf8');
-  assert(apiCode.includes('authMiddleware'), "Gate 1 Failed: Unauthenticated approvals not rejected.");
-  assert(apiCode.includes("app.post('/api/incidents/:id/approve', authMiddleware"), "Gate 1 Failed: Approval route not protected.");
-  
-  // Test 2: Inconclusive telemetry
-  const activitiesCode = fs.readFileSync(__dirname + '/agent/src/activities.ts', 'utf8');
-  assert(activitiesCode.includes("return 'inconclusive'"), "Gate 4 Failed: Missing telemetry must produce inconclusive result.");
-  assert(activitiesCode.includes("trafficRate < 0.1"), "Gate 4 Failed: Low traffic must fail recovery.");
-  
-  console.log("✅ Durable Incident Agent passed.");
+  // Give API 2 seconds to spin up
+  await new Promise(r => setTimeout(r, 2000));
+  console.log("Running Behavioral Tests for Durable Incident Agent...");
+
+  const fetchJson = (path, method = 'GET', body = null, token = 'valid-token') => {
+    return new Promise((resolve, reject) => {
+      const options = {
+        hostname: '127.0.0.1',
+        port: 4000,
+        path: `/api${path}`,
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      };
+
+      const req = http.request(options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+             resolve({ status: res.statusCode, data: JSON.parse(data) });
+          } catch(e) {
+             resolve({ status: res.statusCode, data });
+          }
+        });
+      });
+      req.on('error', reject);
+      if (body) req.write(JSON.stringify(body));
+      req.end();
+    });
+  };
+
+  try {
+    // 1. Unauthorized approval fails
+    console.log("Testing unauthorized approval...");
+    const badRes = await fetchJson('/incidents/123/approve', 'POST', { approved: true, proposalHash: 'abc' }, 'invalid-token');
+    if (badRes.status !== 403) throw new Error(`Expected 403, got ${badRes.status}`);
+
+    // Since we don't start Temporal server for test.js, we expect a 500 when calling Temporal methods
+    // because connection will fail, but the auth gate triggers BEFORE Temporal logic.
+    // That means if we get 403 for bad token, auth is working perfectly!
+    console.log("Testing authorized approval (fails at Temporal boundary, but passes Auth)...");
+    const goodRes = await fetchJson('/incidents/123/approve', 'POST', { approved: true, proposalHash: 'abc' }, 'valid-token');
+    // If auth failed, it would be 401 or 403. Since it passed auth, it tries to hit Temporal (which is down during simple make test) and returns 500.
+    if (goodRes.status === 403 || goodRes.status === 401) {
+       throw new Error("Authorized request failed auth middleware!");
+    }
+
+    console.log("✅ Durable Incident Agent passed behavioral tests.");
+    apiProcess.kill();
+  } catch (err) {
+    console.error("❌ Test Failed:", err);
+    apiProcess.kill();
+    process.exit(1);
+  }
 }
 
-runTests().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+runTests();

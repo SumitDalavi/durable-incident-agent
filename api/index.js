@@ -12,7 +12,8 @@ const authMiddleware = (req, res, next) => {
     return res.status(401).json({ error: 'Unauthorized: Missing or invalid Bearer token' });
   }
   const token = authHeader.split(' ')[1];
-  if (token !== 'valid-token') {
+  const expectedToken = process.env.API_TOKEN || 'valid-token';
+  if (token !== expectedToken) {
     return res.status(403).json({ error: 'Forbidden: Invalid token' });
   }
   req.user = 'authenticated-operator';
@@ -61,6 +62,26 @@ app.get('/api/incidents/:id/proposal', async (req, res) => {
     res.json(proposal || { status: 'pending' });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/incidents/:id/status', async (req, res) => {
+  try {
+    const handle = client.workflow.getHandle(req.params.id);
+    const desc = await handle.describe();
+    res.json({ status: desc.status.name });
+  } catch (err) {
+    res.json({ status: 'UNKNOWN' });
+  }
+});
+
+app.get('/api/incidents/:id/status', async (req, res) => {
+  try {
+    const handle = client.workflow.getHandle(req.params.id);
+    const desc = await handle.describe();
+    res.json({ status: desc.status.name });
+  } catch (err) {
+    res.json({ status: 'UNKNOWN' });
   }
 });
 
