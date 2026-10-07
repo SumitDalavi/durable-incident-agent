@@ -71,25 +71,47 @@ export async function generateProposal(incidentId: string, hypothesis: string, t
   return { action, proposalHash };
 }
 
-// DIA-10: Verification
-export async function verifyRemediation(serviceUrl: string, originalQuery: string): Promise<boolean> {
+export async function verifyRemediation(serviceUrl: string, originalQuery: string): Promise<'success' | 'failed' | 'inconclusive'> {
   // Wait 10 seconds to let the metrics settle
   await new Promise(resolve => setTimeout(resolve, 10000));
   
   try {
-    const res = await axios.get(PROMETHEUS_URL, { params: { query: originalQuery }, timeout: 5000 });
-    const result = res.data?.data?.result;
-    if (result && result.length > 0) {
-       const value = parseFloat(result[0].value[1]);
-       // If the error rate is still high, verification fails
-       return value < 0.5;
+    const targetService = originalQuery.includes('payments') ? 'payments' : originalQuery.includes('inventory') ? 'inventory' : 'checkout';
+    const trafficQuery = `rate(${targetService}_requests_total[1m])`;
+    
+    const [errRes, trafficRes] = await Promise.all([
+      axios.get(PROMETHEUS_URL, { params: { query: originalQuery }, timeout: 5000 }),
+      axios.get(PROMETHEUS_URL, { params: { query: trafficQuery }, timeout: 5000 }).catch(() => null)
+    ]);
+    
+    const errResult = errRes.data?.data?.result;
+    const trafficResult = trafficRes?.data?.data?.result;
+    
+    if (!errResult || errResult.length === 0) {
+      console.warn("verifyRemediation: No error metrics found, marking as inconclusive.");
+      return 'inconclusive';
     }
-    // If no data is found, we cannot verify recovery safely
-    console.warn("verifyRemediation: No data found for query, marking as inconclusive/failed.");
-    return false;
+    
+    const errRate = parseFloat(errResult[0].value[1]);
+    let trafficRate = 0;
+    if (trafficResult && trafficResult.length > 0) {
+      trafficRate = parseFloat(trafficResult[0].value[1]);
+    }
+    
+    if (trafficRate < 0.1) {
+      console.warn(`verifyRemediation: Traffic rate too low (${trafficRate}), cannot prove recovery.`);
+      return 'failed';
+    }
+    
+    if (errRate >= 0.5) {
+      console.warn(`verifyRemediation: Error rate still high (${errRate}), failed.`);
+      return 'failed';
+    }
+    
+    return 'success';
   } catch (err: any) {
     console.error("verifyRemediation error:", err.message);
-    return false;
+    return 'inconclusive';
   }
 }
 

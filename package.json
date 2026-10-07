@@ -1,19 +1,25 @@
 {
-    "name":  "durable-incident-agent-root",
-    "version":  "1.0.0",
-    "private":  true,
-    "workspaces":  [
-                       "agent",
-                       "api",
-                       "services/checkout",
-                       "services/payments",
-                       "services/inventory",
-                       "contracts"
-                   ],
-    "scripts":  {
-                    "setup":  "npm install",
-                    "build":  "npm run build --workspaces --if-present",
-                    "test":  "npm run test --workspaces --if-present",
-                    "clean":  "rm -rf node_modules agent/node_modules api/node_modules services/*/node_modules"
-                }
+    "name": "durable-incident-agent-root",
+    "version": "1.0.0",
+    "private": true,
+    "workspaces": [
+        "agent",
+        "api",
+        "services/checkout",
+        "services/payments",
+        "services/inventory",
+        "contracts"
+    ],
+    "scripts": {
+        "setup": "npm install",
+        "build": "npm run build --workspaces --if-present",
+        "test": "npm run test --workspaces --if-present",
+        "clean": "rm -rf node_modules agent/node_modules api/node_modules services/*/node_modules"
+    },
+    "dependencies": {
+        "@opentelemetry/api": "^1.9.1",
+        "@opentelemetry/auto-instrumentations-node": "^0.81.0",
+        "@opentelemetry/exporter-trace-otlp-http": "^0.223.0",
+        "@opentelemetry/sdk-node": "^0.223.0"
+    }
 }

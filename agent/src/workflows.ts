@@ -50,8 +50,11 @@ export async function incidentResponseWorkflow(incidentId: string, serviceUrl: s
   if (approvalData!.approved) {
     const result = await remediateService(serviceUrl);
     const verified = await verifyRemediation(serviceUrl, metricQuery);
-    if (!verified) {
-       return `Incident ${incidentId} verification FAILED: ${result}. Error rates did not normalize.`;
+    if (verified === 'inconclusive') {
+       return `Incident ${incidentId} verification INCONCLUSIVE: ${result}. Missing telemetry prevents confirmation.`;
+    }
+    if (verified === 'failed') {
+       return `Incident ${incidentId} verification FAILED: ${result}. Error rates did not normalize or traffic is too low.`;
     }
     return `Incident ${incidentId} resolved: ${result}. Verified: ${verified}. Hypothesis was: ${hypothesis}`;
   } else {

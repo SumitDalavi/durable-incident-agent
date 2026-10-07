@@ -1,6 +1,7 @@
 const { initTelemetry } = require('./telemetry');
 initTelemetry('checkout');
 
+require('../tracing.js');
 const express = require('express');
 const pino = require('pino');
 const pinoHttp = require('pino-http');

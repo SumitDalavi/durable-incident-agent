@@ -14,8 +14,9 @@ dev:
 	npm run start --workspace=agent
 
 test:
-	npm run test
+	node test.js
 
 clean:
 	docker compose down -v
 	npm run clean
+

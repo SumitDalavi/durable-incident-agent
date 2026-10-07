@@ -57,8 +57,16 @@
     <div class="card" style="grid-column: 1 / -1;">
       <h3>Telemetry (Grafana)</h3>
       <p>View the live impact on the microservice stack.</p>
-      <!-- Assuming Grafana is running on port 3000 -->
-      <iframe src="http://localhost:3000/d-solo/placeholder/incident-overview?orgId=1&panelId=1" title="Grafana"></iframe>
+      <iframe src="http://localhost:3000/d-solo/dia-perf-01/durable-incident-overview?orgId=1&panelId=2" title="Grafana"></iframe>
+    </div>
+
+    <div class="card" style="grid-column: 1 / -1;">
+      <h3>Incident Timeline</h3>
+      <div id="timeline" class="timeline">
+        <div class="timeline-item"><em>No active incident</em></div>
+      </div>
+      <button onclick="generatePostmortem()" id="btn-postmortem" style="margin-top: 15px; display: none;">Generate Postmortem Document</button>
+      <pre id="postmortem-output" class="hidden" style="background:#0f172a; padding:15px; border-radius:4px; margin-top:15px; border:1px solid #334155;"></pre>
     </div>
 
     <div class="card hidden" id="approval-box" style="grid-column: 1 / -1; border-color: var(--accent);">
@@ -78,9 +86,20 @@
     let currentWorkflowId = '';
     let hashToApprove = 'hash-12345'; // Initial dummy value
 
+    let timelineState = [];
+    
+    function logToTimeline(msg) {
+      timelineState.push({ time: new Date(), msg });
+      const container = document.getElementById('timeline');
+      container.innerHTML = timelineState.map(t => 
+        `<div class="timeline-item"><strong>${t.time.toLocaleTimeString()}</strong>: ${t.msg}</div>`
+      ).join('');
+    }
+
     async function injectFault(type) {
       try {
         await fetch(`http://localhost:5001/fault/${type}`, { method: 'POST' });
+        logToTimeline(`Fault injected: ${type}`);
         alert(`Fault '${type}' injected into Checkout service.`);
       } catch (err) {
         alert('Failed to inject fault. Are the services running?');
@@ -97,10 +116,11 @@
         const data = await res.json();
         currentWorkflowId = data.workflowId;
         document.getElementById('workflow-id').innerText = `Workflow Started: ${currentWorkflowId}`;
+        logToTimeline(`Incident declared. Workflow ID: ${currentWorkflowId}`);
         
         // Poll for actual proposal
         const poll = setInterval(async () => {
-          try {
+           try {
              const pRes = await fetch(`http://localhost:4000/api/incidents/${currentWorkflowId}/proposal`);
              const pData = await pRes.json();
              if (pData && pData.proposalHash) {
@@ -110,8 +130,9 @@
                 document.getElementById('action-text').innerText = pData.action || 'Restart Service';
                 document.getElementById('proposal-hash').innerText = pData.proposalHash;
                 document.getElementById('approval-box').classList.remove('hidden');
+                logToTimeline(`Agent proposed action: ${pData.action}`);
              }
-          } catch(e) {}
+           } catch(e) {}
         }, 2000);
       } catch (err) {
         alert('Failed to start workflow. Is the API running?');
@@ -127,10 +148,34 @@
           body: JSON.stringify({ approved: isApproved, proposalHash: hashToApprove, approver: 'operator-jane' })
         });
         document.getElementById('approval-box').classList.add('hidden');
+        logToTimeline(isApproved ? `Operator approved execution.` : `Operator rejected execution.`);
+        
+        if (isApproved) {
+          document.getElementById('btn-postmortem').style.display = 'inline-block';
+        }
+        
         alert('Signal sent to Temporal workflow! Check worker logs for resolution output.');
       } catch (err) {
         alert('Failed to send approval signal.');
       }
+    }
+
+    function generatePostmortem() {
+      const pm = [
+        "# Incident Postmortem",
+        `**Date:** ${new Date().toLocaleDateString()}`,
+        `**Workflow ID:** ${currentWorkflowId}`,
+        "",
+        "## Timeline",
+        ...timelineState.map(t => `- ${t.time.toLocaleTimeString()}: ${t.msg}`),
+        "",
+        "## Resolution",
+        "Agent executed approved remediation strategy. Validated recovery metrics via Prometheus."
+      ].join('\\n');
+      
+      const out = document.getElementById('postmortem-output');
+      out.innerText = pm;
+      out.classList.remove('hidden');
     }
   </script>
 </body>

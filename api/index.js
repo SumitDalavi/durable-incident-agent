@@ -6,6 +6,19 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized: Missing or invalid Bearer token' });
+  }
+  const token = authHeader.split(' ')[1];
+  if (token !== 'valid-token') {
+    return res.status(403).json({ error: 'Forbidden: Invalid token' });
+  }
+  req.user = 'authenticated-operator';
+  next();
+};
+
 let client;
 async function setupTemporal() {
   const connection = await Connection.connect({ address: 'localhost:7233' });
@@ -27,14 +40,14 @@ app.post('/api/incidents', async (req, res) => {
   }
 });
 
-app.post('/api/incidents/:id/approve', async (req, res) => {
+app.post('/api/incidents/:id/approve', authMiddleware, async (req, res) => {
   try {
-    const { approved, proposalHash, approver } = req.body;
+    const { approved, proposalHash } = req.body;
     if (proposalHash === undefined) {
       return res.status(400).json({ error: 'proposalHash is required' });
     }
     const handle = client.workflow.getHandle(req.params.id);
-    await handle.signal('approveAction', { approved, proposalHash, approver: approver || 'system-admin' });
+    await handle.signal('approveAction', { approved, proposalHash, approver: req.user });
     res.json({ status: 'signalled' });
   } catch (err) {
     res.status(500).json({ error: err.message });
