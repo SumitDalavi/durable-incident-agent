@@ -62,3 +62,8 @@ This resolves all behavioral and runtime constraints, ensuring robust CI/CD exec
   - Bound Temporal explicitly to IPv4 (`127.0.0.1`) to resolve GitHub Actions IPv6 `ECONNREFUSED` issues.
   - Replaced hardcoded sleep intervals with deterministic `/health` endpoint polling on the Express API to guarantee Temporal connectivity before executing E2E faults.
   - Re-introduced a dedicated PostgreSQL database container as Temporal's `auto-setup` script does not natively support SQLite for default persistence, ensuring reliable boot-up in headless CI runners.
+
+## Phase 6: E2E Assurance & Metric Snapshots (Final Validation)
+- **Sustained Recovery Window**: The `verifyRemediation` activity has been upgraded from making single point-in-time checks to asserting sustained metric stability over multiple consecutive observation windows, fully defeating false positives during transient service jitter.
+- **Latency Assertions**: Alongside error ratio and traffic, recovery metrics now successfully assert `p95` latency boundaries.
+- **Metric Snapshot Auditing**: Evidence snapshots (`evidenceIds`) are now durably chained through the workflow result, delivering high-fidelity historical context (telemetry snapshots) back to the caller instead of just a basic boolean status.

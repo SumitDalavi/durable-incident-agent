@@ -110,6 +110,12 @@ export async function verifyRemediation(serviceUrl: string, originalQuery: strin
           latency = parseFloat(latResult[0].value[1]);
       }
       
+      // Strict Finite-Value Validation
+      if (!Number.isFinite(trafficRate) || !Number.isFinite(errRate) || !Number.isFinite(latency) || isNaN(trafficRate) || isNaN(errRate) || isNaN(latency)) {
+          console.warn("verifyRemediation: Non-finite metric detected (NaN/Infinity). Flagging inconclusive.");
+          return { status: 'inconclusive', metrics: collectedMetrics };
+      }
+
       if (trafficRate > 0 && errRate >= 0) {
           errorRatio = errRate / trafficRate;
       }

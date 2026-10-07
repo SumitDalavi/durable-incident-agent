@@ -15,8 +15,8 @@ async function testActivities() {
 
     // Run verifyRemediation with mocked axios
     const resultNaN = await verifyRemediation('http://service', 'rate(checkout_errors)');
-    if (resultNaN !== 'inconclusive') {
-        throw new Error(`NaN test failed. Expected inconclusive, got ${resultNaN}`);
+    if (resultNaN.status !== 'inconclusive') {
+        throw new Error(`NaN test failed. Expected inconclusive, got ${resultNaN.status}`);
     }
     console.log("✅ NaN validation passed.");
     
@@ -27,8 +27,8 @@ async function testActivities() {
     }) as any;
     
     const resultNeg = await verifyRemediation('http://service', 'rate(checkout_errors)');
-    if (resultNeg !== 'inconclusive') {
-        throw new Error(`Negative value test failed. Expected inconclusive, got ${resultNeg}`);
+    if (resultNeg.status !== 'inconclusive') {
+        throw new Error(`Negative value test failed. Expected inconclusive, got ${resultNeg.status}`);
     }
     console.log("✅ Negative value validation passed.");
     
@@ -38,8 +38,8 @@ async function testActivities() {
         }
     }) as any;
     const resultInf = await verifyRemediation('http://service', 'rate(checkout_errors)');
-    if (resultInf !== 'inconclusive') {
-        throw new Error(`Infinity value test failed. Expected inconclusive, got ${resultInf}`);
+    if (resultInf.status !== 'inconclusive') {
+        throw new Error(`Infinity value test failed. Expected inconclusive, got ${resultInf.status}`);
     }
     console.log("✅ Infinity value validation passed.");
 
@@ -49,8 +49,8 @@ async function testActivities() {
         }
     }) as any;
     const resultMalformed = await verifyRemediation('http://service', 'rate(checkout_errors)');
-    if (resultMalformed !== 'inconclusive') {
-        throw new Error(`Malformed value test failed. Expected inconclusive, got ${resultMalformed}`);
+    if (resultMalformed.status !== 'inconclusive') {
+        throw new Error(`Malformed value test failed. Expected inconclusive, got ${resultMalformed.status}`);
     }
     console.log("✅ Malformed value validation passed.");
 

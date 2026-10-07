@@ -10,3 +10,4 @@
 6. **(Optional) Crash Worker**: If you want to demonstrate durability, kill the `make dev` terminal during the investigation phase, then restart it. The workflow will resume.
 7. **Approve Action**: The UI will prompt with an Action Proposal hash. Click "Approve & Execute".
 8. **Resolution**: Watch the telemetry in Grafana return to normal as the agent remediates the service.
+9. **Verification**: The agent will perform a sustained recovery window (3 iterations) to verify the fix persists, before emitting a final success structured result with full latency/error metric snapshots (`evidenceIds`).
