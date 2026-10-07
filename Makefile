@@ -14,6 +14,7 @@ dev:
 	npm run start --workspace=agent
 
 test:
+	npm run build --workspace=agent
 	node test.js
 	node test-real.js
 
