@@ -85,3 +85,8 @@ Fixed auth middleware integration prior to Temporal workflow steps. Behavioral t
   - Bound Temporal explicitly to IPv4 (`127.0.0.1`) to resolve GitHub Actions IPv6 `ECONNREFUSED` issues.
   - Replaced hardcoded sleep intervals with deterministic `/health` endpoint polling on the Express API to guarantee Temporal connectivity before executing E2E faults.
   - Re-introduced a dedicated PostgreSQL database container as Temporal's `auto-setup` script does not natively support SQLite for default persistence, ensuring reliable boot-up in headless CI runners.
+
+## Maturity Claims
+- **Implemented (Tested):** Temporal workflows, metric snapshots, sustained recovery windows, evidence-based assertions.
+- **Mocked:** The Prometheus target and fault injection targets are simulated microservices for the demo.
+- **Deferred:** Full scale multi-region state replication.
