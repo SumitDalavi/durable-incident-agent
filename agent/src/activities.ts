@@ -80,6 +80,10 @@ export async function verifyRemediation(serviceUrl: string, originalQuery: strin
   const maxObservations = 3;
   const collectedMetrics: any[] = [];
 
+  // Wait 20 seconds for the Prometheus 20s rolling window to flush out the fault data
+  console.log("Waiting 20s for Prometheus metrics to stabilize post-remediation...");
+  await new Promise(resolve => setTimeout(resolve, 20000));
+
   for (let i = 0; i < maxObservations; i++) {
     // Wait 5 seconds between observations to prove sustained recovery
     await new Promise(resolve => setTimeout(resolve, 5000));
