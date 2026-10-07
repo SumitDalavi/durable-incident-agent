@@ -4,8 +4,8 @@ services:
   temporal:
     image: temporalio/auto-setup:1.22.4
     ports:
-      - "7233:7233"
-      - "8233:8233"
+      - "127.0.0.1:7233:7233"
+      - "127.0.0.1:8233:8233"
     environment:
       - DB=sqlite
       - DB_FILENAME=/tmp/temporal.db
