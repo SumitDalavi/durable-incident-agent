@@ -162,8 +162,16 @@
              const sData = await sRes.json();
              if (sData.status === 'COMPLETED') {
                 clearInterval(statusPoll);
-                document.getElementById('btn-postmortem').style.display = 'inline-block';
-                logToTimeline('Workflow completed successfully.');
+                // Fetch structured result
+                const rRes = await fetch(`http://localhost:4000/api/incidents/${currentWorkflowId}/result`);
+                const rData = await rRes.json();
+                
+                if (rData.outcome === 'recovered') {
+                   document.getElementById('btn-postmortem').style.display = 'inline-block';
+                   logToTimeline('Workflow completed: ' + rData.message);
+                } else {
+                   logToTimeline('Workflow completed without recovery: ' + (rData.message || rData.outcome));
+                }
              } else if (sData.status === 'FAILED') {
                 clearInterval(statusPoll);
                 logToTimeline('Workflow failed.');

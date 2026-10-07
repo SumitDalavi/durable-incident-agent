@@ -31,7 +31,7 @@ Run `make clean && make setup` to completely clear the cache and reinstall depen
 ## October 2026 Update: Behavioral Testing & Runtime Stabilization
 
 **Implementation Notes:**
-Fixed auth middleware integration prior to Temporal workflow steps. Behavioral tests now validate actual JWT enforcement boundaries.
+Fixed auth middleware integration prior to Temporal workflow steps. Behavioral tests now validate actual simple Bearer token equality boundaries.
 
 * Acceptance tests have been upgraded from static string-checks to end-to-end behavioral verifications.
 * API boundaries and execution layers (Docker, WebSockets, Temporal, etc.) are now explicitly exercised in tests.

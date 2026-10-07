@@ -75,13 +75,13 @@ app.get('/api/incidents/:id/status', async (req, res) => {
   }
 });
 
-app.get('/api/incidents/:id/status', async (req, res) => {
+app.get('/api/incidents/:id/result', async (req, res) => {
   try {
     const handle = client.workflow.getHandle(req.params.id);
-    const desc = await handle.describe();
-    res.json({ status: desc.status.name });
+    const result = await handle.result();
+    res.json(result || { status: 'UNKNOWN' });
   } catch (err) {
-    res.json({ status: 'UNKNOWN' });
+    res.json({ error: err.message });
   }
 });
 

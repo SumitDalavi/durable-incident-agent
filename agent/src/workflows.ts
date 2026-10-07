@@ -10,7 +10,7 @@ export const approveActionSignal = defineSignal<[{ approved: boolean, proposalHa
 import { defineQuery } from '@temporalio/workflow';
 export const getProposalQuery = defineQuery<{ action: string, proposalHash: string, hypothesis: string } | null>('getProposal');
 
-export async function incidentResponseWorkflow(incidentId: string, serviceUrl: string): Promise<string> {
+export async function incidentResponseWorkflow(incidentId: string, serviceUrl: string): Promise<any> {
   let activeProposal: { action: string, proposalHash: string, hypothesis: string } | null = null;
   setHandler(getProposalQuery, () => activeProposal);
   // Investigation
@@ -36,28 +36,28 @@ export async function incidentResponseWorkflow(incidentId: string, serviceUrl: s
   const isApproved = await condition(() => approvalData !== null, '10m');
 
   if (!isApproved) {
-    return `Incident ${incidentId} escalated: Approval timed out after 10 minutes.`;
+    return { outcome: 'escalated', verification: 'none', message: `Incident ${incidentId} escalated: Approval timed out after 10 minutes.` };
   }
 
   if (approvalData!.proposalHash !== proposalHash) {
-    return `Incident ${incidentId} rejected: Stale or invalid proposal hash.`;
+    return { outcome: 'rejected', verification: 'none', message: `Incident ${incidentId} rejected: Stale or invalid proposal hash.` };
   }
 
   if (!approvalData!.approver || approvalData!.approver.trim() === '') {
-    return `Incident ${incidentId} rejected: Missing authenticated approver.`;
+    return { outcome: 'rejected', verification: 'none', message: `Incident ${incidentId} rejected: Missing authenticated approver.` };
   }
 
   if (approvalData!.approved) {
     const result = await remediateService(serviceUrl);
     const verified = await verifyRemediation(serviceUrl, metricQuery);
     if (verified === 'inconclusive') {
-       return `Incident ${incidentId} verification INCONCLUSIVE: ${result}. Missing telemetry prevents confirmation.`;
+       return { outcome: 'inconclusive', verification: 'inconclusive', evidenceIds: [], message: `Incident ${incidentId} verification INCONCLUSIVE: ${result}. Missing telemetry prevents confirmation.` };
     }
     if (verified === 'failed') {
-       return `Incident ${incidentId} verification FAILED: ${result}. Error rates did not normalize or traffic is too low.`;
+       return { outcome: 'failed', verification: 'failed', evidenceIds: [], message: `Incident ${incidentId} verification FAILED: ${result}. Error rates did not normalize or traffic is too low.` };
     }
-    return `Incident ${incidentId} resolved: ${result}. Verified: ${verified}. Hypothesis was: ${hypothesis}`;
+    return { outcome: 'recovered', verification: 'success', evidenceIds: [], message: `Incident ${incidentId} resolved: ${result}. Verified: ${verified}. Hypothesis was: ${hypothesis}` };
   } else {
-    return `Incident ${incidentId} resolution was rejected by operator.`;
+    return { outcome: 'rejected', verification: 'none', message: `Incident ${incidentId} resolution was rejected by operator.` };
   }
 }

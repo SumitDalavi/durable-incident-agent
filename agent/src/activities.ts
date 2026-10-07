@@ -97,7 +97,11 @@ export async function verifyRemediation(serviceUrl: string, originalQuery: strin
       return 'inconclusive';
     }
     
-    const errRate = (!errResult || errResult.length === 0) ? 0 : parseFloat(errResult[0].value[1]);
+    if (!errResult || errResult.length === 0) {
+      console.warn("verifyRemediation: Error metric series missing. Cannot validate telemetry coverage.");
+      return 'inconclusive';
+    }
+    const errRate = parseFloat(errResult[0].value[1]);
     const errorRatio = errRate / trafficRate;
     
     if (errorRatio > 0.05) {
