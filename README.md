@@ -77,3 +77,11 @@ Fixed auth middleware integration prior to Temporal workflow steps. Behavioral t
 
 * Acceptance tests have been upgraded from static string-checks to end-to-end behavioral verifications.
 * API boundaries and execution layers (Docker, WebSockets, Temporal, etc.) are now explicitly exercised in tests.
+
+## Phase 5.1 Update: Real Integration & CI Stabilization
+- **Finite-Value Validation**: Implemented strict validation rejecting `NaN`, `Infinity`, and negative metrics as inconclusive to ensure strict data reliability.
+- **Real Integration Verification**: Added `test-real.js` to demonstrate true E2E integration with live Docker containers (Temporal, PostgreSQL, Prometheus) and functional microservices injected with real fault spikes.
+- **CI Stabilization**:
+  - Bound Temporal explicitly to IPv4 (`127.0.0.1`) to resolve GitHub Actions IPv6 `ECONNREFUSED` issues.
+  - Replaced hardcoded sleep intervals with deterministic `/health` endpoint polling on the Express API to guarantee Temporal connectivity before executing E2E faults.
+  - Re-introduced a dedicated PostgreSQL database container as Temporal's `auto-setup` script does not natively support SQLite for default persistence, ensuring reliable boot-up in headless CI runners.
