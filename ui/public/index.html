@@ -76,7 +76,7 @@
 
   <script>
     let currentWorkflowId = '';
-    const hashToApprove = 'hash-12345'; // Hardcoded for this demo to match the workflow
+    let hashToApprove = 'hash-12345'; // Initial dummy value
 
     async function injectFault(type) {
       try {
@@ -98,10 +98,20 @@
         currentWorkflowId = data.workflowId;
         document.getElementById('workflow-id').innerText = `Workflow Started: ${currentWorkflowId}`;
         
-        // Mocking the delay for the agent to investigate and propose an action
-        setTimeout(() => {
-          document.getElementById('approval-box').classList.remove('hidden');
-        }, 3000);
+        // Poll for actual proposal
+        const poll = setInterval(async () => {
+          try {
+             const pRes = await fetch(`http://localhost:4000/api/incidents/${currentWorkflowId}/proposal`);
+             const pData = await pRes.json();
+             if (pData && pData.proposalHash) {
+                clearInterval(poll);
+                hashToApprove = pData.proposalHash;
+                document.getElementById('hypothesis-text').innerText = pData.hypothesis;
+                document.getElementById('proposal-hash').innerText = pData.proposalHash;
+                document.getElementById('approval-box').classList.remove('hidden');
+             }
+          } catch(e) {}
+        }, 2000);
       } catch (err) {
         alert('Failed to start workflow. Is the API running?');
       }

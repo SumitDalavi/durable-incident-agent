@@ -91,8 +91,7 @@ app.post('/api/action', async (req, res) => {
       errorCounter.inc();
       return res.status(502).json({ error: 'Cascade fault' });
     }
-    res.json({ status: 'success', service: 'inventory' }););
-  }
+    res.json({ status: 'success', service: 'inventory' });
 });
 
 // Fault Endpoints

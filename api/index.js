@@ -41,4 +41,14 @@ app.post('/api/incidents/:id/approve', async (req, res) => {
   }
 });
 
+app.get('/api/incidents/:id/proposal', async (req, res) => {
+  try {
+    const handle = client.workflow.getHandle(req.params.id);
+    const proposal = await handle.query('getProposal');
+    res.json(proposal || { status: 'pending' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(4000, () => console.log('API running on port 4000'));

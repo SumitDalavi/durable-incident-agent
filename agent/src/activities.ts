@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as crypto from 'crypto';
 
 const PROMETHEUS_URL = 'http://localhost:9090/api/v1/query';
 
@@ -10,7 +11,7 @@ export async function queryTelemetry(query: string): Promise<string> {
   
   console.log(`Executing Prometheus query: ${query}`);
   try {
-    const res = await axios.get(PROMETHEUS_URL, { params: { query } });
+    const res = await axios.get(PROMETHEUS_URL, { params: { query }, timeout: 5000 });
     if (!res.data || !res.data.data || res.data.data.result.length === 0) {
       return JSON.stringify({ status: 'NO_DATA', query, message: 'No telemetry data found for the given query.' });
     }
@@ -27,15 +28,28 @@ export async function hypothesize(evidence: string): Promise<string> {
   const mode = process.env.MODEL_MODE || 'mock';
   
   if (mode === 'live') {
-    // Basic OpenAI integration mock-up for phase 2 completeness.
-    // Given the constraints and to ensure the demo works without API keys, we fallback to mock
-    // if OPENAI_API_KEY is not set.
     if (!process.env.OPENAI_API_KEY) {
-      console.warn("MODEL_MODE is live but OPENAI_API_KEY is missing. Falling back to mock.");
-    } else {
-       console.log("Calling LIVE model with evidence...");
-       // await axios.post(...)
-       return `[LIVE] Hypothesis: Based on the provided telemetry showing elevated errors, the service is likely experiencing upstream cascading failures or a simulated fault. Recommend restarting the service.`;
+      throw new Error("MODEL_MODE is live but OPENAI_API_KEY is missing. Cannot fulfill live request.");
+    }
+    console.log("Calling LIVE model with evidence...");
+    try {
+      const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are an SRE AI assistant. Analyze the telemetry evidence and propose a hypothesis.' },
+          { role: 'user', content: `Telemetry evidence:\n${evidence}` }
+        ],
+        max_tokens: 150
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+      return `[LIVE] Hypothesis: ${response.data.choices[0].message.content.trim()}`;
+    } catch (err: any) {
+       throw new Error(`Model provider error: ${err.message}`);
     }
   }
 
@@ -50,13 +64,27 @@ export async function hypothesize(evidence: string): Promise<string> {
   return `[MOCK] Hypothesis: The service is experiencing an anomaly. Recommend a reset.`;
 }
 
+export async function generateProposal(hypothesis: string, targetService: string): Promise<{ action: string, proposalHash: string }> {
+  const action = `reset_faults_on_${targetService}`;
+  const rawPayload = `${action}::${hypothesis}`;
+  const proposalHash = crypto.createHash('sha256').update(rawPayload).digest('hex');
+  return { action, proposalHash };
+}
+
 // DIA-10: Verification
-export async function verifyRemediation(serviceUrl: string): Promise<boolean> {
+export async function verifyRemediation(serviceUrl: string, originalQuery: string): Promise<boolean> {
+  // Wait 5 seconds to let the metrics settle
+  await new Promise(resolve => setTimeout(resolve, 5000));
+  
   try {
-    // Check healthy endpoint instead of pulling raw metrics, 
-    // or query Prometheus again to verify error rate has dropped.
-    const res = await axios.get(`${serviceUrl}/health`);
-    return res.data.status === 'healthy';
+    const res = await axios.get(PROMETHEUS_URL, { params: { query: originalQuery }, timeout: 5000 });
+    const result = res.data?.data?.result;
+    if (result && result.length > 0) {
+       const value = parseFloat(result[0].value[1]);
+       // If the error rate is still high, verification fails
+       return value < 0.5;
+    }
+    return true; // No data means no errors
   } catch {
     return false;
   }
@@ -64,7 +92,7 @@ export async function verifyRemediation(serviceUrl: string): Promise<boolean> {
 
 export async function remediateService(serviceUrl: string): Promise<string> {
   try {
-    await axios.post(`${serviceUrl}/fault/reset`);
+    await axios.post(`${serviceUrl}/fault/reset`, {}, { timeout: 5000 });
     return `Service ${serviceUrl} remediated successfully.`;
   } catch (err: any) {
     throw new Error(`Failed to remediate ${serviceUrl}: ${err.message}`);
