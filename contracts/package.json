@@ -1,0 +1,9 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "main": "src/schemas.js",
+  "types": "src/schemas.d.ts",
+  "dependencies": {
+    "zod": "^3.22.4"
+  }
+}

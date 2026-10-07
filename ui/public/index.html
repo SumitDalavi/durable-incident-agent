@@ -1,41 +1,125 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>DIA Dashboard</title>
-  <style>body { font-family: sans-serif; padding: 20px; } .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; }</style>
+  <style>
+    :root {
+      --bg: #0f172a; --panel: #1e293b; --text: #e2e8f0; --accent: #3b82f6; 
+      --success: #10b981; --danger: #ef4444; --border: #334155;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: var(--bg); color: var(--text); margin: 0; padding: 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    h1 { grid-column: 1 / -1; margin-bottom: 0; }
+    .card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    button {
+      background: var(--accent); color: white; border: none; padding: 10px 16px; border-radius: 4px;
+      cursor: pointer; font-weight: bold; transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    .btn-danger { background: var(--danger); }
+    .btn-success { background: var(--success); }
+    .timeline { margin-top: 20px; }
+    .timeline-item { padding: 10px; border-left: 2px solid var(--border); margin-left: 10px; position: relative; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -6px; top: 15px; width: 10px; height: 10px;
+      border-radius: 50%; background: var(--accent);
+    }
+    iframe { width: 100%; height: 400px; border: none; border-radius: 4px; margin-top: 15px; }
+    .hidden { display: none; }
+  </style>
 </head>
 <body>
-  <h1>Durable Incident Response Agent</h1>
-  <div class="card">
-    <h3>Simulate Incident</h3>
-    <button onclick="triggerIncident()">Trigger Checkout Incident</button>
+  <div class="container">
+    <h1>Durable Incident Response Agent</h1>
+    
+    <div class="card">
+      <h3>1. Inject Fault</h3>
+      <p>Simulate an incident by injecting a fault into the Checkout service.</p>
+      <button onclick="injectFault('spike-errors')">Inject Error Spike</button>
+      <button onclick="injectFault('high-latency')">Inject High Latency</button>
+      <button onclick="injectFault('reset')" style="background:var(--border)">Reset Services</button>
+    </div>
+
+    <div class="card">
+      <h3>2. Start Investigation</h3>
+      <p>Trigger the DIA workflow to investigate the incident.</p>
+      <button onclick="triggerIncident()" id="btn-investigate">Investigate Incident</button>
+      <p id="workflow-id" style="font-family: monospace; color: var(--accent);"></p>
+    </div>
+
+    <div class="card" style="grid-column: 1 / -1;">
+      <h3>Telemetry (Grafana)</h3>
+      <p>View the live impact on the microservice stack.</p>
+      <!-- Assuming Grafana is running on port 3000 -->
+      <iframe src="http://localhost:3000/d-solo/placeholder/incident-overview?orgId=1&panelId=1" title="Grafana"></iframe>
+    </div>
+
+    <div class="card hidden" id="approval-box" style="grid-column: 1 / -1; border-color: var(--accent);">
+      <h3>Action Proposed by Agent</h3>
+      <p><strong>Hypothesis:</strong> <span id="hypothesis-text">The service is experiencing a high error rate.</span></p>
+      <p><strong>Proposed Action:</strong> Restart Checkout Service</p>
+      <p style="font-size: 0.8em; color: #94a3b8;">Proposal Hash: <span id="proposal-hash">hash-12345</span></p>
+      
+      <div style="display:flex; gap: 10px; margin-top: 15px;">
+        <button class="btn-success" onclick="approve(true)">Approve & Execute</button>
+        <button class="btn-danger" onclick="approve(false)">Reject</button>
+      </div>
+    </div>
   </div>
-  <div class="card" id="approval-box" style="display: none;">
-    <h3>Pending Approval</h3>
-    <p>Agent proposes restarting Checkout service.</p>
-    <button onclick="approve(true)">Approve</button>
-    <button onclick="approve(false)">Reject</button>
-  </div>
+
   <script>
     let currentWorkflowId = '';
-    async function triggerIncident() {
-      const res = await fetch('http://localhost:4000/api/incidents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ incidentId: Date.now().toString(), serviceUrl: 'http://localhost:5001' })
-      });
-      const data = await res.json();
-      currentWorkflowId = data.workflowId;
-      document.getElementById('approval-box').style.display = 'block';
+    const hashToApprove = 'hash-12345'; // Hardcoded for this demo to match the workflow
+
+    async function injectFault(type) {
+      try {
+        await fetch(`http://localhost:5001/fault/${type}`, { method: 'POST' });
+        alert(`Fault '${type}' injected into Checkout service.`);
+      } catch (err) {
+        alert('Failed to inject fault. Are the services running?');
+      }
     }
+
+    async function triggerIncident() {
+      try {
+        const res = await fetch('http://localhost:4000/api/incidents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ incidentId: Date.now().toString(), serviceUrl: 'http://localhost:5001' })
+        });
+        const data = await res.json();
+        currentWorkflowId = data.workflowId;
+        document.getElementById('workflow-id').innerText = `Workflow Started: ${currentWorkflowId}`;
+        
+        // Mocking the delay for the agent to investigate and propose an action
+        setTimeout(() => {
+          document.getElementById('approval-box').classList.remove('hidden');
+        }, 3000);
+      } catch (err) {
+        alert('Failed to start workflow. Is the API running?');
+      }
+    }
+
     async function approve(isApproved) {
-      await fetch(http://localhost:4000/api/incidents/\/approve, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ approved: isApproved })
-      });
-      document.getElementById('approval-box').style.display = 'none';
-      alert('Signal sent to Temporal workflow!');
+      if (!currentWorkflowId) return;
+      try {
+        await fetch(`http://localhost:4000/api/incidents/${currentWorkflowId}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approved: isApproved, proposalHash: hashToApprove })
+        });
+        document.getElementById('approval-box').classList.add('hidden');
+        alert('Signal sent to Temporal workflow! Check worker logs for resolution output.');
+      } catch (err) {
+        alert('Failed to send approval signal.');
+      }
     }
   </script>
 </body>

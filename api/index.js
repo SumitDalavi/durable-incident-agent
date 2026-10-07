@@ -19,7 +19,7 @@ app.post('/api/incidents', async (req, res) => {
     const handle = await client.workflow.start('incidentResponseWorkflow', {
       args: [incidentId, serviceUrl],
       taskQueue: 'incident-tasks',
-      workflowId: incident-\,
+      workflowId: "incident-" + incidentId,
     });
     res.json({ workflowId: handle.workflowId });
   } catch (err) {
@@ -29,8 +29,12 @@ app.post('/api/incidents', async (req, res) => {
 
 app.post('/api/incidents/:id/approve', async (req, res) => {
   try {
+    const { approved, proposalHash } = req.body;
+    if (proposalHash === undefined) {
+      return res.status(400).json({ error: 'proposalHash is required' });
+    }
     const handle = client.workflow.getHandle(req.params.id);
-    await handle.signal('approveAction', req.body.approved);
+    await handle.signal('approveAction', { approved, proposalHash });
     res.json({ status: 'signalled' });
   } catch (err) {
     res.status(500).json({ error: err.message });

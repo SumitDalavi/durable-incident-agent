@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: 'services'
+    static_configs:
+      - targets:
+        - 'host.docker.internal:5001' # Checkout
+        - 'host.docker.internal:5002' # Payments
+        - 'host.docker.internal:5003' # Inventory
