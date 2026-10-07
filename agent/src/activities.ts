@@ -71,13 +71,14 @@ export async function generateProposal(incidentId: string, hypothesis: string, t
   return { action, proposalHash };
 }
 
-export async function verifyRemediation(serviceUrl: string, originalQuery: string): Promise<'success' | 'failed' | 'inconclusive'> {
+export async function verifyRemediation(serviceUrl: string, originalQuery: string): Promise<{ status: 'success' | 'failed' | 'inconclusive', metrics: any[] }> {
   const targetService = originalQuery.includes('payments') ? 'payments' : originalQuery.includes('inventory') ? 'inventory' : 'checkout';
   const trafficQuery = `rate(${targetService}_requests_total[1m])`;
   const latencyQuery = `histogram_quantile(0.95, rate(${targetService}_request_duration_seconds_bucket[1m]))`;
 
   let successfulObservations = 0;
   const maxObservations = 3;
+  const collectedMetrics: any[] = [];
 
   for (let i = 0; i < maxObservations; i++) {
     // Wait 5 seconds between observations to prove sustained recovery
@@ -94,64 +95,55 @@ export async function verifyRemediation(serviceUrl: string, originalQuery: strin
       const trafficResult = trafficRes?.data?.data?.result;
       const latResult = latRes?.data?.data?.result;
       
-      if (!trafficResult || trafficResult.length === 0) {
-        console.warn("verifyRemediation: No traffic metrics found, marking as inconclusive.");
-        return 'inconclusive';
+      let trafficRate = -1;
+      let errRate = -1;
+      let errorRatio = -1;
+      let latency = -1;
+      
+      if (trafficResult && trafficResult.length > 0) {
+          trafficRate = parseFloat(trafficResult[0].value[1]);
       }
-      const trafficRate = parseFloat(trafficResult[0].value[1]);
-      if (isNaN(trafficRate) || !isFinite(trafficRate) || trafficRate < 0) {
-         console.warn(`verifyRemediation: Invalid traffic metric ${trafficRate}`);
-         return 'inconclusive';
+      if (errResult && errResult.length > 0) {
+          errRate = parseFloat(errResult[0].value[1]);
       }
+      if (latResult && latResult.length > 0) {
+          latency = parseFloat(latResult[0].value[1]);
+      }
+      
+      if (trafficRate > 0 && errRate >= 0) {
+          errorRatio = errRate / trafficRate;
+      }
+      
+      collectedMetrics.push({ timestamp: Date.now(), trafficRate, errRate, errorRatio, latency });
+
       if (trafficRate < 1.0) {
         console.warn(`verifyRemediation: Traffic rate too low (${trafficRate}), cannot prove recovery.`);
-        return 'inconclusive';
+        return { status: 'inconclusive', metrics: collectedMetrics };
       }
-      
-      if (!errResult || errResult.length === 0) {
-        console.warn("verifyRemediation: Error metric series missing. Cannot validate telemetry coverage.");
-        return 'inconclusive';
+      if (errorRatio < 0) {
+        console.warn("verifyRemediation: Invalid error ratio, missing telemetry.");
+        return { status: 'inconclusive', metrics: collectedMetrics };
       }
-      const errRate = parseFloat(errResult[0].value[1]);
-      if (isNaN(errRate) || !isFinite(errRate) || errRate < 0) {
-         console.warn(`verifyRemediation: Invalid error metric ${errRate}`);
-         return 'inconclusive';
-      }
-      
-      const errorRatio = errRate / trafficRate;
-      if (isNaN(errorRatio) || !isFinite(errorRatio) || errorRatio < 0) {
-         console.warn(`verifyRemediation: Invalid error ratio ${errorRatio}`);
-         return 'inconclusive';
-      }
-      
       if (errorRatio > 0.05) {
         console.warn(`verifyRemediation: Error ratio still high (${errorRatio.toFixed(2)}), failed.`);
-        return 'failed';
+        return { status: 'failed', metrics: collectedMetrics };
       }
-
-      if (latResult && latResult.length > 0) {
-        const latency = parseFloat(latResult[0].value[1]);
-        if (isNaN(latency) || !isFinite(latency) || latency < 0) {
-           console.warn(`verifyRemediation: Invalid latency metric ${latency}`);
-           return 'inconclusive';
-        }
-        if (latency > 2.0) { // arbitrary 2 second p95 threshold for latency fault
-          console.warn(`verifyRemediation: Latency still high (${latency.toFixed(2)}s), failed.`);
-          return 'failed';
-        }
+      if (latency > 2.0) {
+        console.warn(`verifyRemediation: Latency still high (${latency.toFixed(2)}s), failed.`);
+        return { status: 'failed', metrics: collectedMetrics };
       }
       
       successfulObservations++;
     } catch (err: any) {
       console.error("verifyRemediation error:", err.message);
-      return 'inconclusive';
+      return { status: 'inconclusive', metrics: collectedMetrics };
     }
   }
 
   if (successfulObservations === maxObservations) {
-     return 'success';
+     return { status: 'success', metrics: collectedMetrics };
   }
-  return 'inconclusive';
+  return { status: 'inconclusive', metrics: collectedMetrics };
 }
 
 export async function remediateService(serviceUrl: string): Promise<string> {

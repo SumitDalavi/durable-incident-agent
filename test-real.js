@@ -6,7 +6,7 @@ async function runRealIntegration() {
   try {
     execSync('docker info', { stdio: 'ignore' });
   } catch (e) {
-    console.log("Docker is not available or not running. Skipping real integration test. CI will run this.");
+    console.log("⚠️ SKIPPED: Docker is unavailable. Integration suite aborted.");
     process.exit(0);
   }
   
@@ -115,8 +115,25 @@ async function runRealIntegration() {
        req.end();
     });
 
-    console.log("Waiting for remediation to complete (20s)...");
-    await new Promise(r => setTimeout(r, 20000));
+    console.log("Fetching final result to verify sustained recovery...");
+    const finalResult = await new Promise((resolve, reject) => {
+       const req = http.request({ hostname: '127.0.0.1', port: 4000, path: `/api/incidents/${workflowId}/result`, method: 'GET', headers: { 'Authorization': 'Bearer valid-token' } }, (res) => {
+         let data = '';
+         res.on('data', chunk => data += chunk);
+         res.on('end', () => resolve(JSON.parse(data)));
+       });
+       req.on('error', reject);
+       req.end();
+    });
+    console.log("Final Result:", finalResult);
+    
+    if (finalResult.outcome !== 'recovered' || finalResult.verification !== 'success') {
+      throw new Error(`Integration failed: final result was not successful recovery. Got ${JSON.stringify(finalResult)}`);
+    }
+    
+    if (!finalResult.evidenceIds || finalResult.evidenceIds.length < 3) {
+      throw new Error(`Integration failed: missing or insufficient metric snapshots (evidenceIds). Got ${JSON.stringify(finalResult.evidenceIds)}`);
+    }
 
     console.log("✅ Real Integration Test Passed!");
     cleanup();

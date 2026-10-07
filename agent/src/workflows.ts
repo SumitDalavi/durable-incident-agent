@@ -49,14 +49,14 @@ export async function incidentResponseWorkflow(incidentId: string, serviceUrl: s
 
   if (approvalData!.approved) {
     const result = await remediateService(serviceUrl);
-    const verified = await verifyRemediation(serviceUrl, metricQuery);
-    if (verified === 'inconclusive') {
-       return { outcome: 'inconclusive', verification: 'inconclusive', evidenceIds: [], message: `Incident ${incidentId} verification INCONCLUSIVE: ${result}. Missing telemetry prevents confirmation.` };
+    const verification = await verifyRemediation(serviceUrl, metricQuery);
+    if (verification.status === 'inconclusive') {
+       return { outcome: 'inconclusive', verification: 'inconclusive', evidenceIds: verification.metrics, message: `Incident ${incidentId} verification INCONCLUSIVE: ${result}. Missing telemetry prevents confirmation.` };
     }
-    if (verified === 'failed') {
-       return { outcome: 'failed', verification: 'failed', evidenceIds: [], message: `Incident ${incidentId} verification FAILED: ${result}. Error rates did not normalize or traffic is too low.` };
+    if (verification.status === 'failed') {
+       return { outcome: 'failed', verification: 'failed', evidenceIds: verification.metrics, message: `Incident ${incidentId} verification FAILED: ${result}. Error rates did not normalize or traffic is too low.` };
     }
-    return { outcome: 'recovered', verification: 'success', evidenceIds: [], message: `Incident ${incidentId} resolved: ${result}. Verified: ${verified}. Hypothesis was: ${hypothesis}` };
+    return { outcome: 'recovered', verification: 'success', evidenceIds: verification.metrics, message: `Incident ${incidentId} resolved: ${result}. Verified: ${verification.status}. Hypothesis was: ${hypothesis}` };
   } else {
     return { outcome: 'rejected', verification: 'none', message: `Incident ${incidentId} resolution was rejected by operator.` };
   }
