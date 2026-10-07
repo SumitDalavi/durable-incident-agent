@@ -73,8 +73,8 @@ export async function generateProposal(incidentId: string, hypothesis: string, t
 
 export async function verifyRemediation(serviceUrl: string, originalQuery: string): Promise<{ status: 'success' | 'failed' | 'inconclusive', metrics: any[] }> {
   const targetService = originalQuery.includes('payments') ? 'payments' : originalQuery.includes('inventory') ? 'inventory' : 'checkout';
-  const trafficQuery = `rate(${targetService}_requests_total[1m])`;
-  const latencyQuery = `histogram_quantile(0.95, rate(${targetService}_request_duration_seconds_bucket[1m]))`;
+  const trafficQuery = `rate(${targetService}_requests_total[20s])`;
+  const latencyQuery = `histogram_quantile(0.95, rate(${targetService}_request_duration_seconds_bucket[20s]))`;
 
   let successfulObservations = 0;
   const maxObservations = 3;

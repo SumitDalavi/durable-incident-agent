@@ -18,7 +18,7 @@ export async function incidentResponseWorkflow(incidentId: string, serviceUrl: s
   if (serviceUrl.includes('5002')) targetService = 'payments';
   if (serviceUrl.includes('5003')) targetService = 'inventory';
   
-  const metricQuery = `rate(${targetService}_errors_total[1m])`;
+  const metricQuery = `rate(${targetService}_errors_total[20s])`;
   const queryResult = await queryTelemetry(metricQuery);
   const hypothesis = await hypothesize(queryResult);
   
