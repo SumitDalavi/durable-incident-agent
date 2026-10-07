@@ -53,3 +53,8 @@ All identified correctness blockers from the initial structural epic phase have 
 - **Resource Cleanup**: Tests properly isolate their artifacts (e.g., dedicated `fs.mkdtempSync` directories) and verify underlying cleanup (e.g., Docker container `inspect` checks).
 - **Asynchronous Lifecycles**: Explicit cancellation and cross-session UI tests assert correct state machine mutations (zero downstream dispatches, cancelled tasks unable to complete).
 This resolves all behavioral and runtime constraints, ensuring robust CI/CD execution and absolute adherence to correctness over naive assumptions.
+
+
+## Phase 5.1 Update: Real Integration & Finite-Value Validation
+- **Finite-Value Validation**: Implemented strict validation rejecting `NaN`, `Infinity`, and negative metrics as inconclusive to ensure strict data reliability.
+- **Real Integration Verification**: Added `test-real.js` to demonstrate true E2E integration with live Docker containers (Temporal, Prometheus) and functional microservices injected with real fault spikes.
