@@ -26,7 +26,15 @@ async function runRealIntegration() {
   const api = spawn('node', ['index.js'], { cwd: 'api', stdio: 'inherit' });
   const agent = spawn('node', ['dist/worker.js'], { cwd: 'agent', stdio: 'inherit' });
 
+  console.log("Starting background traffic generator...");
+  const trafficInterval = setInterval(() => {
+      const req = http.request({ hostname: '127.0.0.1', port: 5001, path: '/api/checkout', method: 'POST' });
+      req.on('error', () => {});
+      req.end();
+  }, 200); // 5 requests per second
+
   let cleanup = () => {
+    clearInterval(trafficInterval);
     console.log("Cleaning up processes...");
     checkout.kill();
     payments.kill();
@@ -66,20 +74,6 @@ async function runRealIntegration() {
        req.on('error', reject);
        req.end();
     });
-
-    console.log("Starting background traffic generator...");
-    const trafficInterval = setInterval(() => {
-        const req = http.request({ hostname: '127.0.0.1', port: 5001, path: '/api/checkout', method: 'POST' });
-        req.on('error', () => {});
-        req.end();
-    }, 200); // 5 requests per second
-    
-    // Make sure we stop the traffic generator in cleanup
-    const originalCleanup = cleanup;
-    cleanup = () => {
-        clearInterval(trafficInterval);
-        originalCleanup();
-    };
 
     console.log("Triggering Incident via API...");
     const incidentRes = await new Promise((resolve, reject) => {
