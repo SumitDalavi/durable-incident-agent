@@ -64,17 +64,17 @@ export async function hypothesize(evidence: string): Promise<string> {
   return `[MOCK] Hypothesis: The service is experiencing an anomaly. Recommend a reset.`;
 }
 
-export async function generateProposal(hypothesis: string, targetService: string): Promise<{ action: string, proposalHash: string }> {
+export async function generateProposal(incidentId: string, hypothesis: string, targetService: string): Promise<{ action: string, proposalHash: string }> {
   const action = `reset_faults_on_${targetService}`;
-  const rawPayload = `${action}::${hypothesis}`;
+  const rawPayload = `${incidentId}::${action}::${hypothesis}`;
   const proposalHash = crypto.createHash('sha256').update(rawPayload).digest('hex');
   return { action, proposalHash };
 }
 
 // DIA-10: Verification
 export async function verifyRemediation(serviceUrl: string, originalQuery: string): Promise<boolean> {
-  // Wait 5 seconds to let the metrics settle
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  // Wait 10 seconds to let the metrics settle
+  await new Promise(resolve => setTimeout(resolve, 10000));
   
   try {
     const res = await axios.get(PROMETHEUS_URL, { params: { query: originalQuery }, timeout: 5000 });
@@ -84,8 +84,11 @@ export async function verifyRemediation(serviceUrl: string, originalQuery: strin
        // If the error rate is still high, verification fails
        return value < 0.5;
     }
-    return true; // No data means no errors
-  } catch {
+    // If no data is found, we cannot verify recovery safely
+    console.warn("verifyRemediation: No data found for query, marking as inconclusive/failed.");
+    return false;
+  } catch (err: any) {
+    console.error("verifyRemediation error:", err.message);
     return false;
   }
 }

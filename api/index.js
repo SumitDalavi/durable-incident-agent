@@ -29,12 +29,12 @@ app.post('/api/incidents', async (req, res) => {
 
 app.post('/api/incidents/:id/approve', async (req, res) => {
   try {
-    const { approved, proposalHash } = req.body;
+    const { approved, proposalHash, approver } = req.body;
     if (proposalHash === undefined) {
       return res.status(400).json({ error: 'proposalHash is required' });
     }
     const handle = client.workflow.getHandle(req.params.id);
-    await handle.signal('approveAction', { approved, proposalHash });
+    await handle.signal('approveAction', { approved, proposalHash, approver: approver || 'system-admin' });
     res.json({ status: 'signalled' });
   } catch (err) {
     res.status(500).json({ error: err.message });

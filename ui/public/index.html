@@ -64,7 +64,7 @@
     <div class="card hidden" id="approval-box" style="grid-column: 1 / -1; border-color: var(--accent);">
       <h3>Action Proposed by Agent</h3>
       <p><strong>Hypothesis:</strong> <span id="hypothesis-text">The service is experiencing a high error rate.</span></p>
-      <p><strong>Proposed Action:</strong> Restart Checkout Service</p>
+      <p><strong>Proposed Action:</strong> <span id="action-text">Restart Checkout Service</span></p>
       <p style="font-size: 0.8em; color: #94a3b8;">Proposal Hash: <span id="proposal-hash">hash-12345</span></p>
       
       <div style="display:flex; gap: 10px; margin-top: 15px;">
@@ -107,6 +107,7 @@
                 clearInterval(poll);
                 hashToApprove = pData.proposalHash;
                 document.getElementById('hypothesis-text').innerText = pData.hypothesis;
+                document.getElementById('action-text').innerText = pData.action || 'Restart Service';
                 document.getElementById('proposal-hash').innerText = pData.proposalHash;
                 document.getElementById('approval-box').classList.remove('hidden');
              }
@@ -123,7 +124,7 @@
         await fetch(`http://localhost:4000/api/incidents/${currentWorkflowId}/approve`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ approved: isApproved, proposalHash: hashToApprove })
+          body: JSON.stringify({ approved: isApproved, proposalHash: hashToApprove, approver: 'operator-jane' })
         });
         document.getElementById('approval-box').classList.add('hidden');
         alert('Signal sent to Temporal workflow! Check worker logs for resolution output.');
