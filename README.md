@@ -6,72 +6,146 @@
 [![SBOM](https://img.shields.io/badge/SBOM-SPDX%202.3-blueviolet?logo=spdx)](https://github.com/SumitDalavi/durable-incident-agent/releases/tag/v0.2.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-> Autonomous incident response agent built on durable execution primitives, executing multi-step remediation workflows with human-in-the-loop approval gates and sustained post-mitigation telemetry verification.
+> **Maturity:** Fully functional E2E Portfolio Project  
+> Distributed via GitHub Container Registry (`ghcr.io/sumitdalavi/durable-incident-agent:v0.2.0`) and tagged GitHub Releases with Anchore SPDX 2.3 SBOM and SHA-256 digest attestation.
+
+---
+
+## The Problem
+Modern distributed systems and AI agents require robust operational scaffolding. Simple CRUD apps or mock loops fail when subjected to real-world edge cases, asynchronous boundaries, and security constraints.
+
+## The Solution
+Inject a fault into a demo microservice stack, let an agent investigate using real telemetry (metrics, logs, traces), kill the worker mid-investigation, watch it resume, and approve a scoped remediation that is verified against telemetry afterwards.
 
 ---
 
 ## Key Capabilities & Architectural Highlights
-- **Durable**: state-machine workflow orchestrating fault triage, evidence collection, and approval-gated mitigation
-- **Temporal**: worker crash resilience ensuring recovery without duplicate actions
-- **Sustained**: 3-minute post-mitigation cooldown window tracking p95 latency and error rate stability
-- **Full**: OCI container distribution via GitHub Container Registry (GHCR)
+- **Durable Saga Orchestration**: Fault triage, evidence collection, and approval-gated mitigation via Temporal.
+- **Crash-Proof Resilience**: Worker restart mid-investigation resumes deterministically without duplicate execution.
+- **Sustained Cooldown Observation**: Multi-minute post-mitigation observation tracking p95 latency and error rate stability.
+- **Full OCI Distribution**: Published to GitHub Container Registry (GHCR).
 
-## Technology Stack
-- **Languages & Frameworks:** TypeScript, Node.js 22, Temporal SDK, Prometheus, OpenTelemetry, Docker
+## 💻 Tech Stack
 - **Container Registry:** `ghcr.io/sumitdalavi/durable-incident-agent:v0.2.0`
+- **Security & Attestation:** Anchore SPDX 2.3 SBOM, SHA-256 Checksums
 - **License:** MIT Open Source
 
 ---
 
-## Documentation Index
-- [Architecture Specification](docs/ARCHITECTURE.md) — Detailed system diagrams, state machines, and design contracts.
-- [Production Runbook](docs/RUNBOOK.md) — Deployment instructions, configuration options, and operations.
-- [Demo Script & Walkthrough](docs/DEMO_SCRIPT.md) — Step-by-step verification scenario.
-- [Changelog](CHANGELOG.md) — Full release notes and version history.
+## 📚 Documentation Index
+- [Architecture Specification](docs/ARCHITECTURE.md) — System diagram, component contracts, and container distribution architecture.
+- [Production Runbook](docs/RUNBOOK.md) — Operational runbook, live execution commands, and verification recipes.
+- [Demo Walkthrough](docs/DEMO_SCRIPT.md) — Step-by-step interactive demonstration scenario.
+- [Changelog](CHANGELOG.md) — Full version history following Keep a Changelog and SemVer.
 
 ---
 
-## Quickstart & Installation
+## 🚀 Quickstart & Installation
 
 ### Option 1: Run with Docker Container (GHCR)
 ```bash
 docker pull ghcr.io/sumitdalavi/durable-incident-agent:v0.2.0
+docker run -d -p 4000:4000 -e TEMPORAL_ADDRESS=temporal:7233 ghcr.io/sumitdalavi/durable-incident-agent:v0.2.0
+```
+
+### Option 2: Run with Docker Compose (Full Stack)
+```bash
 docker compose up -d
 npm run start --workspace=agent
 ```
 
 ### Option 3: Local Developer Setup
 ```bash
+# 1. Clone the repository
 git clone https://github.com/SumitDalavi/durable-incident-agent.git
 cd durable-incident-agent
+
+# 2. Build and start
 make setup
-make test
+make dev
 ```
 
 ---
 
-## Release & Security Verification
+## 🎮 Usage & Demo
+See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) for the interactive walkthrough and verification steps.
 
-This repository adheres to the Portfolio Release Standard with verifiable supply-chain security attestations:
+## Demo (3-4 minutes)
 
-- **Distribution Archive:** `durable-incident-agent-v0.2.0.tar.gz`
-- **SHA-256 Digest:** `f4d9bdc99444bee715c6f2192e8174f64c311b95a3025a439b777eb580ed00ac`
-- **Software Bill of Materials (SBOM):** Anchore SPDX 2.3 JSON specification (`sbom.spdx.json`).
+1. Inject "payments latency spike" fault.
+2. Alert fires; workflow starts; agent queries metrics/logs/traces.
+3. Kill the agent worker mid-run.
+4. Restart the worker; the workflow resumes without repeating completed steps.
+5. Agent proposes a scoped remediation; approval requested.
+6. Approve; remediation executes; telemetry verifies recovery; postmortem draft generated.
 
-### Verification Commands
+---
+
+## ✅ Verification
+
+### Operational Verification
+| Check | Command | Expected |
+|---|---|---|
+| Build | `make setup` | Dependencies install successfully |
+| Run | `make dev` | Services start without crashing |
+| Test | `make test` | Behavioral test suite passes |
+
+### Cryptographic & Supply Chain Verification
+To verify the authentic origin, integrity, and software composition of release artifacts:
 ```bash
 # 1. Download Release Bundle & Checksums
 gh release download v0.2.0 --repo SumitDalavi/durable-incident-agent --pattern "*.tar.gz" --pattern "checksums.txt"
 
-# 2. Verify Cryptographic Integrity
+# 2. Verify SHA-256 Digest
 sha256sum -c checksums.txt
 
-# 3. Inspect SPDX SBOM
+# 3. Inspect SPDX 2.3 Software Bill of Materials
 gh release download v0.2.0 --repo SumitDalavi/durable-incident-agent --pattern "sbom.spdx.json"
 cat sbom.spdx.json | jq .spdxVersion
 ```
 
 ---
 
-## License
-MIT License. Copyright (c) 2026 Sumit Dalavi.
+## Capability Status
+| Capability | Status |
+|---|---|
+| Demo stack with fault injection (checkout, payments, inventory) | Implemented |
+| Telemetry (Prometheus, Loki or log files, Jaeger/Tempo) | Implemented |
+| Durable workflow orchestration | Implemented |
+| Agent investigation with telemetry tools | Implemented |
+| Worker-kill resume demo | Implemented |
+| Durable approval gate (survives restarts, with timeout/escalation) | Implemented |
+| Remediation executor + post-action verification | Implemented |
+| Incident timeline UI + postmortem draft | Implemented |
+| Optional decision layer (severity, retryability, routing) | Implemented |
+
+---
+
+## October 2026 Update: Behavioral Testing & Runtime Stabilization
+
+**Implementation Notes:**
+Fixed auth middleware integration prior to Temporal workflow steps. Behavioral tests now validate actual simple Bearer token equality boundaries.
+
+* Acceptance tests have been upgraded from static string-checks to end-to-end behavioral verifications.
+* API boundaries and execution layers (Docker, WebSockets, Temporal, etc.) are now explicitly exercised in tests.
+
+## Phase 5.1 Update: Real Integration & CI Stabilization
+- **Finite-Value Validation**: Implemented strict validation rejecting `NaN`, `Infinity`, and negative metrics as inconclusive to ensure strict data reliability.
+- **Real Integration Verification**: Added `test-real.js` to demonstrate true E2E integration with live Docker containers (Temporal, PostgreSQL, Prometheus) and functional microservices injected with real fault spikes.
+- **CI Stabilization**:
+  - Bound Temporal explicitly to IPv4 (`127.0.0.1`) to resolve GitHub Actions IPv6 `ECONNREFUSED` issues.
+  - Replaced hardcoded sleep intervals with deterministic `/health` endpoint polling on the Express API to guarantee Temporal connectivity before executing E2E faults.
+  - Re-introduced a dedicated PostgreSQL database container as Temporal's `auto-setup` script does not natively support SQLite for default persistence, ensuring reliable boot-up in headless CI runners.
+
+## Maturity Claims
+- **Implemented (Tested):** Temporal workflows, metric snapshots, sustained recovery windows, evidence-based assertions.
+- **Mocked:** The Prometheus target and fault injection targets are simulated microservices for the demo.
+- **Deferred:** Full scale multi-region state replication.
+
+---
+
+## 👨‍💻 Author
+**Sumit Dalavi** — Senior DevSecOps / Platform Engineer  
+[GitHub](https://github.com/SumitDalavi) | [LinkedIn](https://in.linkedin.com/in/sumit-dalavi-762838129)
+
+*Built with a focus on robust patterns, not toy demos.*
