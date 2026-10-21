@@ -4,13 +4,15 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release:
-    name: Package & Publish Release Catalog
+    name: Package, Containerize & Publish Release Catalog
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -26,6 +28,16 @@ jobs:
 
       - name: Run Tests
         run: make test
+
+      - name: Build & Push Container Image to GHCR
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/${OWNER}/${{ github.event.repository.name }}:${{ github.ref_name }}"
+          LATEST="ghcr.io/${OWNER}/${{ github.event.repository.name }}:latest"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker build -t "$IMAGE" -t "$LATEST" .
+          docker push "$IMAGE"
+          docker push "$LATEST"
 
       - name: Package Release Distribution Bundle
         run: |
