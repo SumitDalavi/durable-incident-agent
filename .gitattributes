@@ -1,0 +1,4 @@
+# Classify helper services and test fixtures so GitHub Linguist indexes TypeScript as primary
+services/** linguist-detectable=false
+replace_docs.js linguist-detectable=false
+test*.js linguist-detectable=false
