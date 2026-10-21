@@ -1,0 +1,7 @@
+node_modules
+.git
+.github
+*.log
+checksums.txt
+sbom.spdx.json
+*.tar.gz
