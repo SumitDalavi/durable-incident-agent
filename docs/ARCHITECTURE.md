@@ -1,5 +1,21 @@
 # Architecture: Durable Incident Agent (DIA)
 
+## Architecture Diagram
+
+```mermaid
+graph TD
+    A[Telemetry / Prometheus Fault Alert] --> B[Express API Gateway :4000]
+    B --> C[Temporal Orchestrator Engine]
+    C --> D[Incident Saga Workflow]
+    D --> E[Triage Activity: Snapshot Metrics]
+    E --> F[Mitigation Activity: Traffic Shift / Restart]
+    F --> G[Cooldown Activity: Sustained 3m Observation]
+    G -->|p95 Latency & Error OK| H[Resolve Incident]
+    G -->|Metric Regressed| I[Compensating Rollback Saga]
+    D --> J[Human Approval Gate]
+```
+
+
 ## Overview
 DIA orchestrates incident investigation and remediation using Temporal. This ensures that the agent's state is fully durable—if the worker process crashes during an investigation, Temporal automatically resumes the workflow precisely where it left off, without re-executing non-idempotent steps.
 
@@ -60,3 +76,18 @@ This resolves all behavioral and runtime constraints, ensuring robust CI/CD exec
 - **Metric Snapshot Auditing**: Evidence snapshots (`evidenceIds`) are now durably chained through the workflow result, delivering high-fidelity historical context (telemetry snapshots) back to the caller instead of just a basic boolean status.
 - **Telemetry Cooldowns & Rolling Windows**: The agent explicitly waits 20 seconds post-remediation to allow Prometheus rate rolling window queries to completely flush out stale synthetic fault data before executing the verification loop.
 - **Cross-environment Networking**: Node microservices explicitly bind to 0.0.0.0 rather than 127.0.0.1 to ensure they are accessible to Prometheus running in a Docker container, specifically using host.docker.internal:host-gateway for full Linux CI compatibility.
+
+
+## Release & Container Distribution Architecture (v0.2.0 Update)
+
+### 1. Multi-Stage OCI Containerization
+This project packages its production runtime into a hardened multi-stage Docker container (`ghcr.io/sumitdalavi/durable-incident-agent`):
+- **Base Runtime:** Production-minimal base images (Alpine Linux / Python-slim).
+- **Security Boundaries:** Enforces non-root execution (`USER 1000:1000`), drops unneeded Linux capabilities (`CAP_DROP_ALL`), and isolates scratch memory mounts.
+- **Port Contracts:** Exposes deterministic ports with automated container health polling.
+
+### 2. Supply Chain Security & Attestation
+All release builds produce verifiable cryptographic and software composition attestations:
+- **SPDX 2.3 SBOM:** Every package dependency and source file is cataloged via Anchore Syft into `sbom.spdx.json`.
+- **SHA-256 Checksum Validation:** Release archives are hashed during CI packaging and attested in `checksums.txt`.
+- **Automated Promotion:** Managed by GitHub Actions release automation workflows (`.github/workflows/release.yml`) with tokenized write scopes (`packages: write`, `contents: write`).

@@ -69,3 +69,65 @@ This resolves all behavioral and runtime constraints, ensuring robust CI/CD exec
 - **Metric Snapshot Auditing**: Evidence snapshots (`evidenceIds`) are now durably chained through the workflow result, delivering high-fidelity historical context (telemetry snapshots) back to the caller instead of just a basic boolean status.
 - **Telemetry Cooldowns & Rolling Windows**: The agent explicitly waits 20 seconds post-remediation to allow Prometheus rate rolling window queries to completely flush out stale synthetic fault data before executing the verification loop.
 - **Cross-environment Networking**: Node microservices explicitly bind to 0.0.0.0 rather than 127.0.0.1 to ensure they are accessible to Prometheus running in a Docker container, specifically using host.docker.internal:host-gateway for full Linux CI compatibility.
+
+
+## Production Operations & Release Runbook (v0.2.0 Update)
+
+### 1. Production Deployment & Container Invocation (GHCR)
+```bash
+# Pull production image:
+docker pull ghcr.io/sumitdalavi/durable-incident-agent:v0.2.0
+
+# Run containerized agent and API gateway:
+docker run -d \
+  --name durable-incident-agent \
+  -p 4000:4000 \
+  -e TEMPORAL_ADDRESS="temporal:7233" \
+  -e PROMETHEUS_URL="http://prometheus:9090" \
+  ghcr.io/sumitdalavi/durable-incident-agent:v0.2.0
+
+# Verify service health:
+curl -f http://localhost:4000/health
+```
+
+### 2. Live Incident Remediation Execution
+```bash
+# Trigger an incident remediation workflow:
+curl -X POST http://localhost:4000/api/incident/trigger \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service": "checkout",
+    "faultType": "latency_spike",
+    "thresholdP95Ms": 850
+  }'
+
+# Query workflow execution status:
+curl http://localhost:4000/api/incident/status/<WORKFLOW_ID>
+
+# Approve human-in-the-loop mitigation step:
+curl -X POST http://localhost:4000/api/incident/approve/<WORKFLOW_ID> \
+  -H "Content-Type: application/json" \
+  -d '{"action": "PROCEED_WITH_ROLLBACK"}'
+```
+
+### 3. Release Integrity & Verification Runbook
+To verify the authentic origin and file integrity of release packages:
+```bash
+# Download distribution package and checksums:
+gh release download v0.2.0 --repo SumitDalavi/durable-incident-agent --pattern "*.tar.gz" --pattern "checksums.txt"
+
+# Assert cryptographic match:
+sha256sum -c checksums.txt
+
+# Inspect SPDX 2.3 Software Bill of Materials:
+gh release download v0.2.0 --repo SumitDalavi/durable-incident-agent --pattern "sbom.spdx.json"
+cat sbom.spdx.json | jq .packages[0].name
+```
+
+### 4. Operational Failure Modes & Troubleshooting
+- **Port Collisions:** If the host port is in use, remap using `-p <ALTERNATIVE_PORT>:<CONTAINER_PORT>`.
+- **Docker Daemon Permissions:** For tools requiring container orchestrator control (`agent-sandbox-platform`), ensure `/var/run/docker.sock` has read/write permissions for the runner user.
+- **GHCR Pull Authentication:** If pulling from GHCR encounters rate limits or private scope:
+  ```bash
+  echo "$GITHUB_TOKEN" | docker login ghcr.io -u <GITHUB_USERNAME> --password-stdin
+  ```
