@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as crypto from 'crypto';
 
-const PROMETHEUS_URL = 'http://localhost:9090/api/v1/query';
+const PROMETHEUS_URL = process.env.PROMETHEUS_URL || 'http://localhost:9090/api/v1/query';
 
 // DIA-05: Read-only evidence tools
 export async function queryTelemetry(query: string): Promise<string> {
@@ -25,7 +25,7 @@ export async function queryTelemetry(query: string): Promise<string> {
 export async function hypothesize(evidence: string): Promise<string> {
   if (!evidence || evidence.trim() === '') throw new Error('Missing evidence');
   
-  const mode = process.env.MODEL_MODE || 'mock';
+  const mode = process.env.MODEL_MODE || (process.env.OPENAI_API_KEY ? 'live' : 'mock');
   
   if (mode === 'live') {
     if (!process.env.OPENAI_API_KEY) {

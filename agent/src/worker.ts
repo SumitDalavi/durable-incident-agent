@@ -1,12 +1,13 @@
-import { Worker } from '@temporalio/worker';
+import { Worker, NativeConnection } from '@temporalio/worker';
 import * as activities from './activities';
 
 async function run() {
   let connection: any;
   while (true) {
     try {
-      const { NativeConnection } = require('@temporalio/worker');
-      connection = await NativeConnection.connect({ address: '127.0.0.1:7233' });
+      const temporalAddr = process.env.TEMPORAL_ADDRESS || '127.0.0.1:7233';
+      connection = await NativeConnection.connect({ address: temporalAddr });
+      console.log(`Worker connected to Temporal at ${temporalAddr}`);
       break;
     } catch (err) {
       console.log('Worker failing to connect, retrying in 2s...');

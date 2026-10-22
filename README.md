@@ -6,7 +6,6 @@
 [![SBOM](https://img.shields.io/badge/SBOM-SPDX%202.3-blueviolet?logo=spdx)](https://github.com/SumitDalavi/durable-incident-agent/releases/tag/v0.2.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-> **Maturity:** Fully functional E2E Portfolio Project  
 > Distributed via GitHub Container Registry (`ghcr.io/sumitdalavi/durable-incident-agent:v0.2.0`) and tagged GitHub Releases with Anchore SPDX 2.3 SBOM and SHA-256 digest attestation.
 
 ---
@@ -121,26 +120,17 @@ cat sbom.spdx.json | jq .spdxVersion
 
 ---
 
-## October 2026 Update: Behavioral Testing & Runtime Stabilization
+## 🔌 Dual-Mode Execution: Live-First with Graceful Mock Fallback
 
-**Implementation Notes:**
-Fixed auth middleware integration prior to Temporal workflow steps. Behavioral tests now validate actual simple Bearer token equality boundaries.
+This platform operates in **Dual-Mode**, dynamically selecting between live production infrastructure and self-contained mock fixtures based on environment variables:
 
-* Acceptance tests have been upgraded from static string-checks to end-to-end behavioral verifications.
-* API boundaries and execution layers (Docker, WebSockets, Temporal, etc.) are now explicitly exercised in tests.
+| Component | Environment Variable | Live Mode Behavior | Fallback Mode (Unset / Empty) |
+|---|---|---|---|
+| **Temporal Engine** | `TEMPORAL_ADDRESS` | Connects to distributed Temporal cluster (e.g. `temporal.prod.internal:7233`) | Binds to local loopback `127.0.0.1:7233` |
+| **Telemetry Provider** | `PROMETHEUS_URL` | Scrapes live production Prometheus metrics (`http://prometheus:9090`) | Simulates telemetry fixtures for checkout, payments, and inventory |
+| **AI Investigation** | `OPENAI_API_KEY` / `GEMINI_API_KEY` | Calls live LLM API for dynamic root-cause hypothesis generation | Returns deterministic, rule-based hypothesis from incident telemetry |
+| **Microservice Targets** | `CHECKOUT_URL`, `PAYMENTS_URL` | Dispatches remediation RPCs to live Kubernetes microservices | Dispatches to bundled Express simulation endpoints |
 
-## Phase 5.1 Update: Real Integration & CI Stabilization
-- **Finite-Value Validation**: Implemented strict validation rejecting `NaN`, `Infinity`, and negative metrics as inconclusive to ensure strict data reliability.
-- **Real Integration Verification**: Added `test-real.js` to demonstrate true E2E integration with live Docker containers (Temporal, PostgreSQL, Prometheus) and functional microservices injected with real fault spikes.
-- **CI Stabilization**:
-  - Bound Temporal explicitly to IPv4 (`127.0.0.1`) to resolve GitHub Actions IPv6 `ECONNREFUSED` issues.
-  - Replaced hardcoded sleep intervals with deterministic `/health` endpoint polling on the Express API to guarantee Temporal connectivity before executing E2E faults.
-  - Re-introduced a dedicated PostgreSQL database container as Temporal's `auto-setup` script does not natively support SQLite for default persistence, ensuring reliable boot-up in headless CI runners.
-
-## Maturity Claims
-- **Implemented (Tested):** Temporal workflows, metric snapshots, sustained recovery windows, evidence-based assertions.
-- **Mocked:** The Prometheus target and fault injection targets are simulated microservices for the demo.
-- **Deferred:** Full scale multi-region state replication.
 
 ---
 
@@ -148,4 +138,7 @@ Fixed auth middleware integration prior to Temporal workflow steps. Behavioral t
 **Sumit Dalavi** — Senior DevSecOps / Platform Engineer  
 [GitHub](https://github.com/SumitDalavi) | [LinkedIn](https://in.linkedin.com/in/sumit-dalavi-762838129)
 
-*Built with a focus on robust patterns, not toy demos.*
+---
+
+## 📄 License
+This project is licensed under the [MIT License](LICENSE). Copyright (c) 2026 Sumit Dalavi.

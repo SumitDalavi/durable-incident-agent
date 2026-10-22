@@ -24,9 +24,10 @@ let client;
 async function setupTemporal() {
   while (true) {
     try {
-      const connection = await Connection.connect({ address: '127.0.0.1:7233' });
+      const temporalAddr = process.env.TEMPORAL_ADDRESS || '127.0.0.1:7233';
+      const connection = await Connection.connect({ address: temporalAddr });
       client = new Client({ connection });
-      console.log('Connected to Temporal');
+      console.log(`Connected to Temporal at ${temporalAddr}`);
       break;
     } catch (err) {
       console.error('Failed to connect to Temporal, retrying in 2s...');
