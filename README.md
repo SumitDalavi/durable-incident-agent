@@ -131,7 +131,6 @@ This platform operates in **Dual-Mode**, dynamically selecting between live prod
 | **AI Investigation** | `OPENAI_API_KEY` / `GEMINI_API_KEY` | Calls live LLM API for dynamic root-cause hypothesis generation | Returns deterministic, rule-based hypothesis from incident telemetry |
 | **Microservice Targets** | `CHECKOUT_URL`, `PAYMENTS_URL` | Dispatches remediation RPCs to live Kubernetes microservices | Dispatches to bundled Express simulation endpoints |
 
-
 ---
 
 ## 👨‍💻 Author
